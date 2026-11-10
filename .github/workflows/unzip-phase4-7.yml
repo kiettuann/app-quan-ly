@@ -1,0 +1,34 @@
+name: Unzip Phase 4-7 scaffold
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  workflows: write
+
+jobs:
+  unzip:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Extract scaffold zip
+        run: |
+          ls -l quanly-store-phase4-7-complete-v2.zip
+          unzip -o quanly-store-phase4-7-complete-v2.zip -d .
+          rm quanly-store-phase4-7-complete-v2.zip
+          echo "--- extracted ---"
+          ls apps workers packages
+          echo "--- file count ---"
+          find . -type f -not -path './.git/*' | wc -l
+
+      - name: Commit extracted files
+        run: |
+          git config user.name "KALVIN"
+          git config user.email "kietct96@gmail.com"
+          git add -A
+          git status --short
+          git commit -m "Phase 4-7: extract complete scaffold from zip (138 files)" || echo "nothing to commit"
+          git push
