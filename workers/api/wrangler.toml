@@ -1,0 +1,53 @@
+# quanly.store API — Cloudflare Workers + D1 + R2
+# D1 database_id và R2 bucket điền sau khi Kalvin tạo trên Cloudflare.
+# Tên miền quanly.store chưa mua -> deploy tạm bằng *.workers.dev / *.pages.dev random.
+name = "quanlynail1-api"
+main = "src/index.ts"
+compatibility_date = "2026-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+ENVIRONMENT = "production"
+# OTP — Kalvin chốt 10/11/2026: Email OTP miễn phí qua Resend
+# (free tier 3.000 email/tháng, tối đa 100/ngày). RESEND_API_KEY KHÔNG để
+# trong file này — đặt bằng: wrangler secret put RESEND_API_KEY
+OTP_SENDER = "email"
+EMAIL_FROM = "quanly.store <no-reply@quanly.store>"
+# OTP_DEV_MODE: "true" chỉ ở dev local. Production LUÔN "false".
+OTP_DEV_MODE = "false"
+
+[observability]
+enabled = true
+
+[observability.traces]
+enabled = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "quanly-store-db"
+# Đã điền 2026-11-10: D1 quanly-store-db do Kalvin tạo trên Cloudflare.
+database_id = "b61411fd-1dbd-4ff0-80f0-c442ac48d683"
+# Migration Drizzle nằm ở ./drizzle, không phải ./migrations mặc định của Wrangler.
+migrations_dir = "drizzle"
+
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "quanly-store-files"
+
+[env.staging]
+name = "quanly-store-api-staging"
+vars = { ENVIRONMENT = "staging" }
+
+[env.production]
+name = "quanlynail1-api"
+vars = { ENVIRONMENT = "production", OTP_SENDER = "email", EMAIL_FROM = "quanly.store <no-reply@quanly.store>", OTP_DEV_MODE = "false" }
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "quanly-store-db"
+database_id = "b61411fd-1dbd-4ff0-80f0-c442ac48d683"
+migrations_dir = "drizzle"
+
+[[env.production.r2_buckets]]
+binding = "FILES"
+bucket_name = "quanly-store-files"

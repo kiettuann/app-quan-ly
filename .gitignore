@@ -1,0 +1,14 @@
+node_modules/
+dist/
+dist-ssr/
+*.tsbuildinfo
+*.local
+.env
+.env.*
+!.env.example
+.DS_Store
+*.log
+coverage/
+.wrangler/
+.dev.vars
+miniflare/
