@@ -60,6 +60,30 @@ export class EmailOtpSender implements OtpSender {
       throw new Error("Gửi email OTP thất bại. Vui lòng thử lại sau.");
     }
   }
+
+  /**
+   * Email đặt lại mật khẩu — mailer riêng, KHÔNG dùng lại template OTP
+   * (token reset là chuỗi hex dài, hết hạn sau 1 giờ, không phải mã 6 số).
+   * `resetUrl` là link tới trang đặt lại mật khẩu của app web kèm token.
+   */
+  async sendPasswordReset(to: string, resetUrl: string): Promise<void> {
+    if (!this.apiKey) {
+      throw new Error("Email chưa được cấu hình (thiếu RESEND_API_KEY — đặt qua wrangler secret put)");
+    }
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${this.apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from: this.from,
+        to,
+        subject: "Đặt lại mật khẩu quanly.store",
+        text: `Bạn đã yêu cầu đặt lại mật khẩu quanly.store.\n\nBấm vào link sau để đặt mật khẩu mới (link hết hạn sau 1 giờ, chỉ dùng được 1 lần):\n${resetUrl}\n\nNếu bạn không yêu cầu, hãy bỏ qua email này.`,
+      }),
+    });
+    if (!res.ok) {
+      throw new Error("Gửi email đặt lại mật khẩu thất bại. Vui lòng thử lại sau.");
+    }
+  }
 }
 
 /** SMS OTP — STUB. Chưa cấu hình provider Việt Nam, chưa gửi thật. */

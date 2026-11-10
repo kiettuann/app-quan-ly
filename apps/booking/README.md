@@ -1,14 +1,39 @@
-# Customer Booking Website (public)
+# Đặt lịch — quanly.store (public, apps/booking)
 
-Chưa triển khai ở Phase 3 Foundation. Sẽ làm ở Phase 4, sau module Booking nội bộ.
+Website đặt lịch công khai cho khách của một tiệm nail trên quanly.store.
+Không cần đăng nhập, không cần tạo tài khoản.
 
-Luồng (UX_FLOWS.md §3): chọn chi nhánh → dịch vụ → kỹ thuật viên (hoặc tự chọn)
-→ ngày → giờ trống thật → SĐT → xác minh OTP → xem lại → đặt cọc nếu chi nhánh
-yêu cầu (hiện chỉ hiển thị "Sắp ra mắt") → xác nhận booking.
+## Chạy
 
-OTP — Kalvin chốt 10/11/2026: Email OTP miễn phí qua Resend (free tier 3.000
-email/tháng, tối đa 100/ngày) là kênh chính cho đăng nhập chủ tiệm / nhân viên.
-Khách đặt lịch online trong MVP: giữ SĐT làm định danh, chưa gửi OTP SMS.
-SMS OTP chỉ còn dạng stub trong abstraction (`packages/shared/src/otp.ts`)
-để cắm provider sau. Chưa có RESEND_API_KEY thật — đặt bằng
-`wrangler secret put RESEND_API_KEY`, không hardcode, không commit key.
+```bash
+npm run dev --workspace=@quanly/booking      # http://localhost:5174
+npm run build --workspace=@quanly/booking
+```
+
+API: `VITE_API_URL` (mặc định `http://localhost:8787`), endpoint `/api/v1/public/*`.
+
+## Luồng (10 bước, UX_FLOWS.md §3 — đã điều chỉnh theo quyết định MVP)
+
+1. Nhập mã tiệm (slug), hoặc mở link có `?tenant=<slug>`.
+2. Chọn chi nhánh — `GET /public/branches?tenant=<slug>`.
+3. Chọn dịch vụ (nhiều dịch vụ, giá + thời lượng hiện trước) — `GET /public/services?branch_id=`.
+4. Chọn kỹ thuật viên, hoặc "Hệ thống tự chọn" (danh sách lấy từ `GET /public/availability` nếu server trả kèm).
+5. Chọn ngày (không cho ngày quá khứ).
+6. Chọn giờ còn trống thật — `GET /public/availability?branch_id=&date=&technician_id=&service_id=`.
+7. Nhập họ tên + số điện thoại (10 số, bắt đầu bằng 0).
+8. Xem lại (chi nhánh, dịch vụ, kỹ thuật viên, ngày giờ, tổng tiền tính từ giá dịch vụ do server trả).
+9. Đặt cọc: chỉ hiển thị **"Sắp ra mắt"** — không thu tiền, không có logic thanh toán.
+10. Xác nhận — `POST /public/bookings` → màn hình xác nhận (mã lịch, ngày giờ, địa chỉ, tổng tiền do server trả).
+
+Mục "Tra cứu lịch của tôi": nhập mã tiệm + SĐT (+ chi nhánh, không bắt buộc) →
+`GET /public/my-bookings?phone=&branch_id=` → danh sách lịch của mình, hủy lịch
+`pending`/`confirmed` qua `POST /public/my-bookings/:id/cancel`.
+
+## Cố tình chưa làm
+
+- **Không có màn hình OTP.** Kalvin chốt: SĐT là định danh của khách đặt lịch
+  online trong MVP, không gửi OTP SMS thật. (Email OTP qua Resend chỉ dùng cho
+  đăng nhập chủ tiệm / nhân viên; xem `packages/shared/src/otp.ts`.)
+- **Không có cổng thanh toán / đặt cọc thật.** Chưa chốt gateway (API_SPEC.md §7).
+- Mọi giá/tổng tiền hiển thị đều lấy từ server; không có dữ liệu giả.
+  Mọi màn hình đều có trạng thái loading / empty / error.

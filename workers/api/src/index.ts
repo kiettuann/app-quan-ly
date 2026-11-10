@@ -1,10 +1,25 @@
-// quanly.store API — Cloudflare Workers + Hono. Phase 3 Foundation.
+// quanly.store API — Cloudflare Workers + Hono. Phase 4–7 complete.
 // Một API duy nhất cho 3 app (web / booking / admin). Nguồn: ARCHITECTURE.md.
-// Chưa có module nghiệp vụ (booking, POS...) — chỉ health, auth skeleton, tenant guard.
+// Mọi route nghiệp vụ đi qua authMiddleware + RBAC; tenant context lấy từ
+// phiên đã xác minh, KHÔNG tin tenant_id client gửi.
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { apiError } from "@quanly/shared";
-import { authMiddleware } from "./auth.js";
+import { adminRoutes } from "./routes/admin.js";
+import { authRoutes } from "./routes/auth.js";
+import { bookingsRoutes } from "./routes/bookings.js";
+import { branchesRoutes } from "./routes/branches.js";
+import { commissionRoutes } from "./routes/commission.js";
+import { customersRoutes } from "./routes/customers.js";
+import { employeeRoutes } from "./routes/employees.js";
+import { expensesRoutes } from "./routes/expenses.js";
+import { inventoryRoutes } from "./routes/inventory.js";
+import { invoiceRoutes } from "./routes/invoices.js";
+import { payrollRoutes } from "./routes/payroll.js";
+import { publicRoutes } from "./routes/public.js";
+import { reportsRoutes } from "./routes/reports.js";
+import { servicesRoutes } from "./routes/services.js";
+import { usersRoutes } from "./routes/users.js";
 
 export interface Env {
   DB: D1Database;
@@ -13,11 +28,20 @@ export interface Env {
   OTP_SENDER?: string;
   OTP_DEV_MODE?: string;
   SESSION_SECRET?: string;
+  /** Đặt bằng `wrangler secret put RESEND_API_KEY` — KHÔNG hardcode, KHÔNG commit. */
+  RESEND_API_KEY?: string;
+  EMAIL_FROM?: string;
 }
 
 const app = new Hono<{ Bindings: Env }>();
 
-app.use("*", cors({ origin: ["https://quanlynail1.pages.dev", "http://localhost:5173", "http://localhost:5174", "http://localhost:5175"], credentials: true }));
+app.use(
+  "*",
+  cors({
+    origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175"],
+    credentials: true,
+  }),
+);
 
 app.onError((_err, c) => {
   // Không lộ stack trace / SQL ra client (API_SPEC.md §3).
@@ -27,35 +51,22 @@ app.onError((_err, c) => {
 
 app.get("/api/v1/health", (c) => c.json({ data: { status: "ok", environment: c.env.ENVIRONMENT ?? "dev" } }));
 
-// --- Auth (Foundation skeleton: login thật làm ở Phase 4) ---
-app.post("/api/v1/auth/login", (c) =>
-  c.json(
-    apiError("UNPROCESSABLE", "Đăng nhập chưa được triển khai ở Phase 3 Foundation. Sẽ có ở Phase 4."),
-    422,
-  ),
-);
-
-// --- OTP (Email OTP qua Resend — xem packages/shared/src/otp.ts) ---
-// Kênh đã chốt: Email OTP (Resend free tier 3.000/tháng, tối đa 100/ngày).
-// Endpoint thật làm ở Phase 4 sau khi có RESEND_API_KEY (wrangler secret put).
-// Chưa có key -> hệ thống từ chối gửi, KHÔNG giả vờ đã gửi OTP.
-app.post("/api/v1/customers/otp/send", (c) =>
-  c.json(
-    apiError(
-      "UNPROCESSABLE",
-      "Email OTP chưa được cấu hình (thiếu RESEND_API_KEY). Hệ thống không giả vờ đã gửi OTP.",
-    ),
-    422,
-  ),
-);
-
-// --- Ví dụ route có guard tenant: chỉ để chứng minh middleware chạy ---
-// Mọi route nghiệp vụ Phase 4 đều đi qua authMiddleware + kiểm tra tenant/branch
-// bằng canAccessRecord() trong @quanly/shared trước khi trả dữ liệu.
-app.get("/api/v1/tenants/me", authMiddleware, (c) => {
-  const session = c.get("session");
-  return c.json({ data: { tenantId: session.tenantId, userId: session.userId } });
-});
+// Phase 4 — Core Modules (thứ tự MVP rồi mở rộng, xem IMPLEMENTATION_PLAN.md §3).
+app.route("/api/v1", authRoutes);
+app.route("/api/v1", branchesRoutes);
+app.route("/api/v1", usersRoutes);
+app.route("/api/v1", servicesRoutes);
+app.route("/api/v1", customersRoutes);
+app.route("/api/v1", bookingsRoutes);
+app.route("/api/v1", invoiceRoutes);
+app.route("/api/v1", commissionRoutes);
+app.route("/api/v1", employeeRoutes);
+app.route("/api/v1", payrollRoutes);
+app.route("/api/v1", inventoryRoutes);
+app.route("/api/v1", expensesRoutes);
+app.route("/api/v1", reportsRoutes);
+app.route("/api/v1", publicRoutes);
+app.route("/api/v1", adminRoutes);
 
 app.notFound((c) => c.json(apiError("NOT_FOUND", "Không tìm thấy đường dẫn này."), 404));
 

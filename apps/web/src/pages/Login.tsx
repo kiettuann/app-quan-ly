@@ -1,7 +1,10 @@
 import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useAuth } from "../lib/auth.js";
+import { errMsg } from "../lib/ui.js";
 
 const loginSchema = z.object({
   email: z.string().email("Email chưa đúng định dạng."),
@@ -9,11 +12,10 @@ const loginSchema = z.object({
 });
 type LoginForm = z.infer<typeof loginSchema>;
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8787";
-
-// Đăng nhập thật qua API. Phase 3 API chưa triển khai login -> hiện lỗi thật
-// từ server, KHÔNG giả vờ đăng nhập thành công, KHÔNG dữ liệu giả.
+// Đăng nhập thật qua API: lưu token qua useAuth rồi về Tổng quan.
 export default function LoginPage() {
+  const { login } = useAuth();
+  const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const {
@@ -26,15 +28,10 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/v1/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      const body = (await res.json()) as { error?: { message?: string } };
-      setError(body.error?.message ?? "Đăng nhập thất bại. Vui lòng thử lại.");
-    } catch {
-      setError("Không kết nối được tới máy chủ. Kiểm tra API đang chạy ở " + API_URL + " rồi thử lại.");
+      await login(data.email, data.password);
+      navigate("/", { replace: true });
+    } catch (err) {
+      setError(errMsg(err));
     } finally {
       setLoading(false);
     }
@@ -79,6 +76,14 @@ export default function LoginPage() {
           {loading ? "Đang xử lý..." : "Đăng nhập"}
         </button>
       </form>
+      <div className="mt-4 flex items-center justify-between text-sm">
+        <Link to="/quen-mat-khau" className="font-semibold text-[#3979A8]">
+          Quên mật khẩu?
+        </Link>
+        <Link to="/dang-ky" className="font-semibold text-[#3979A8]">
+          Đăng ký tiệm mới
+        </Link>
+      </div>
     </main>
   );
 }

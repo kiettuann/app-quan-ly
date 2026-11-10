@@ -2,8 +2,8 @@
 
 > Trạng thái: **Phase 3 — Foundation**. Scaffold + auth/tenant guard + migration 0001
 > + test nền tảng. Chưa có module nghiệp vụ (booking, POS, hoa hồng... — Phase 4).
-> Repo: `kiettuann/App-Quan-Ly`, nhánh `main`. Cấu hình triển khai Cloudflare:
-> [DEPLOYMENT.md](DEPLOYMENT.md). Web: https://quanlynail1.pages.dev.
+> Chưa push lên GitHub (repo `kiettuann/quanly-store` private chưa được tạo — Kalvin
+> tạo tay trên GitHub), chưa deploy Cloudflare.
 
 Tài liệu Blueprint (Phase 2) ở `../files/`: PRD, ARCHITECTURE, DATABASE_SCHEMA,
 PERMISSIONS, API_SPEC, DESIGN_SYSTEM, UX_FLOWS, IMPLEMENTATION_PLAN.
@@ -54,17 +54,23 @@ wrangler d1 create quanly-store-db
 npm run db:migrate:local --workspace=@quanly/api
 ```
 
-## Deploy
+## Deploy (thủ công, sau khi repo tồn tại)
 
-Xem [DEPLOYMENT.md](DEPLOYMENT.md) để cập nhật giao diện, API và database đúng
-môi trường production. Giao diện dùng Cloudflare Pages, API dùng Worker
-`quanlynail1-api`, cùng D1 `quanly-store-db` và R2 `quanly-store-files` đã có.
-`SESSION_SECRET` chỉ lưu trên Cloudflare. `RESEND_API_KEY` sẽ thêm khi triển khai
-gửi email thật; Phase 3 chưa có đăng nhập/OTP hoàn chỉnh.
+1. Kalvin tạo repo `kiettuann/quanly-store` (private) trên GitHub, gắn repo vào
+   ứng dụng GitHub của Muse.
+2. Push code này lên `main` (mỗi push cần Kalvin duyệt).
+3. Cloudflare: tạo D1 `quanly-store-db`, R2 bucket `quanly-store-files`,
+   Workers `quanly-store-api` — điền `database_id` vào `wrangler.toml`.
+4. Đặt secret (không commit):
+   ```bash
+   wrangler secret put SESSION_SECRET
+   wrangler secret put RESEND_API_KEY   # Email OTP — tạo key trên resend.com
+   ```
+5. `wrangler deploy` (API) + deploy `apps/web` lên Cloudflare Pages/Workers Assets
+   với tên miền random tạm thời. Kiểm tra URL live trả đúng nội dung mới gọi là xong.
 
 ## Nguyên tắc không vi phạm
 
 - Tenant context lấy từ phiên đã xác minh, không tin `tenant_id` client gửi.
 - Mọi tính tiền ở backend, integer VND. Không dữ liệu giả, không nút giả.
 - Không log OTP, token, mật khẩu. Không commit secret.
-
