@@ -38,7 +38,7 @@ const app = new Hono<{ Bindings: Env }>();
 app.use(
   "*",
   cors({
-    origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175"],
+    origin: ["https://quanlynail1.pages.dev", "http://localhost:5173", "http://localhost:5174", "http://localhost:5175"],
     credentials: true,
   }),
 );
