@@ -1,9 +1,7 @@
 // Bán hàng / POS — UX_FLOWS.md §2.3/§5: POS tại quầy (chọn dịch vụ, bill,
-// chiết khấu, thu tiền ngay), rồi danh sách hóa đơn, chi tiết hóa đơn
-// (thu tiền / hoàn tiền), tạo hóa đơn từ lịch hoàn thành.
+// chiết khấu, thu tiền ngay), rồi chi tiết hóa đơn (thu tiền / hoàn tiền).
 // Tổng tiền CHỈ lấy từ server trả về: giá mỗi dòng sửa trên bill chỉ là
 // tạm tính, máy chủ tính lại theo giá niêm yết khi tạo hóa đơn.
-// Nút "Thu tiền cọc" chỉ hiện "Sắp ra mắt", không làm gì khác.
 import { useMemo, useRef, useState } from "react";
 import type { ComponentType, PointerEvent as ReactPointerEvent } from "react";
 import {
@@ -60,7 +58,6 @@ interface PosLine {
 export default function SalesPage() {
   const qc = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [showCreate, setShowCreate] = useState(false);
   const [notice, setNotice] = useState<{ kind: "success" | "error" | "info"; text: string } | null>(null);
 
   const detailQ = useQuery({
@@ -68,29 +65,11 @@ export default function SalesPage() {
     queryFn: () => get<Row>(`/api/v1/invoices/${selectedId ?? ""}`),
     enabled: selectedId !== null,
   });
-  const completedQ = useQuery({
-    queryKey: ["bookings", "completed-no-invoice"],
-    queryFn: () => apiPage<Row>("/api/v1/bookings?status=completed&limit=50").then((r) => r.items),
-    enabled: showCreate,
-  });
-  const fromBookingMut = useMutation({
-    mutationFn: (bookingId: string) => post<Row>(`/api/v1/bookings/${bookingId}/create-invoice`, {}),
-    onSuccess: (data) => {
-      setNotice({ kind: "success", text: "Đã tạo hóa đơn từ lịch hẹn." });
-      setSelectedId(idOf(data as Row));
-    },
-    onError: (err) => setNotice({ kind: "error", text: errMsg(err) }),
-  });
 
   const selected = detailQ.data ?? null;
 
   return (
     <main className="space-y-4 p-4">
-      <div className="flex items-center justify-end gap-2">
-        <button type="button" onClick={() => setShowCreate((v) => !v)} className={btnPrimary}>
-          Tạo hóa đơn
-        </button>
-      </div>
       {notice ? <Notice kind={notice.kind} text={notice.text} onClose={() => setNotice(null)} /> : null}
 
       <PosTerminal
@@ -98,23 +77,6 @@ export default function SalesPage() {
           setSelectedId(idOf(inv));
         }}
       />
-
-      <button
-        type="button"
-        onClick={() => setNotice({ kind: "info", text: "Tính năng đặt cọc / thanh toán online sắp ra mắt." })}
-        className={`${btnSecondary} w-full sm:w-auto`}
-      >
-        Thu tiền cọc
-      </button>
-
-      {showCreate ? (
-        <CreateInvoiceForm
-          completedBookings={completedQ.data ?? []}
-          completedLoading={completedQ.isLoading}
-          onFromBooking={(id) => fromBookingMut.mutate(id)}
-          fromBookingPending={fromBookingMut.isPending}
-        />
-      ) : null}
 
       {selectedId && selected ? (
         <InvoiceDetail
@@ -472,7 +434,7 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
           ) : filteredServices.length === 0 ? (
             <p className="mt-2 text-sm text-[#748294]">Không tìm thấy dịch vụ nào.</p>
           ) : (
-            <div className="mt-2 grid min-h-0 flex-1 grid-cols-5 gap-1.5 overflow-y-auto pr-0.5 [scrollbar-width:thin] lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
+            <div className="mt-2 grid min-h-0 flex-1 grid-cols-4 gap-1.5 overflow-y-auto pr-0.5 [scrollbar-width:thin]">
               {filteredServices.map((sv) => {
                 const catName = s(sv, "categoryName", "category_name");
                 // Ô đã chọn (đã có trong bill): sáng hơn, viền Navy đậm + badge
@@ -554,31 +516,38 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
               </Field>
             </div>
           ) : null}
-          <div className="mt-2 flex gap-2">
-            <div className="relative min-w-0 flex-1">
-              <UserRound className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
-              <input
-                value={customerName}
-                onChange={(e) => { setCustomerName(e.target.value); setPickedCustomer(null); }}
-                placeholder="Tên khách (không bắt buộc)"
-                aria-label="Tên khách"
-                className={`${posInputCls} pl-8`}
-              />
+          <div className="mt-2 flex items-end gap-2">
+            <div className="min-w-0 flex-1">
+              <label className="mb-1 block text-xs font-medium text-[#748294]">Tên khách</label>
+              <div className="flex">
+                <div className="relative min-w-0 flex-1">
+                  <UserRound className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
+                  <input
+                    value={customerName}
+                    onChange={(e) => { setCustomerName(e.target.value); setPickedCustomer(null); }}
+                    placeholder="Không bắt buộc"
+                    aria-label="Tên khách"
+                    className={`${posInputCls} rounded-r-none border-r-0 pl-8`}
+                  />
+                </div>
+                <button type="button" onClick={() => setShowCustomerSearch((v) => !v)} className="inline-flex h-9 shrink-0 items-center gap-1 rounded-r-lg border border-border bg-tint-50 px-2 text-xs font-semibold text-navy hover:bg-tint-100 active:bg-tint-100">
+                  <Users className="h-4 w-4" aria-hidden="true" />
+                  Khách quen
+                </button>
+              </div>
             </div>
-            <button type="button" onClick={() => setShowCustomerSearch((v) => !v)} className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-white px-2.5 text-xs font-semibold text-navy hover:bg-tint-50 active:bg-tint-100">
-              <Users className="h-4 w-4" aria-hidden="true" />
-              Khách quen
-            </button>
-          </div>
-          <div className="relative mt-2">
-            <UserRound className="pointer-events-none absolute left-2.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
-            <select value={technicianId} onChange={(e) => setTechnicianId(e.target.value)} aria-label="Tên thợ" className={`${posInputCls} appearance-none pl-8 pr-7`}>
-              <option value="">— Chọn thợ —</option>
-              {employees.map((em) => (
-                <option key={idOf(em)} value={idOf(em)}>{s(em, "fullName", "full_name")}</option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
+            <div className="w-[132px] shrink-0">
+              <label className="mb-1 block text-xs font-medium text-[#748294]">Tên thợ</label>
+              <div className="relative">
+                <select value={technicianId} onChange={(e) => setTechnicianId(e.target.value)} aria-label="Tên thợ" className={`${posInputCls} appearance-none pr-7`}>
+                  <option value="">— Chọn thợ —</option>
+                  {employees.map((em) => (
+                    <option key={idOf(em)} value={idOf(em)}>{s(em, "fullName", "full_name")}</option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
+              </div>
+            </div>
           </div>
           {pickedCustomer ? (
             <p className="mt-1.5 text-xs">
@@ -653,11 +622,13 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
                     }}
                     className="h-7 w-[68px] shrink-0 rounded-md border border-[#E5E9ED] bg-white px-1.5 text-right text-xs tabular-nums focus:border-blue focus:outline-none"
                   />
+                  <span className="shrink-0 text-xs text-[#748294]">×</span>
                   <span className="flex shrink-0 items-center gap-0.5">
                     <button type="button" aria-label={`Giảm số lượng ${l.name}`} onClick={() => setLines((prev) => prev.map((x, j) => (j === i ? { ...x, quantity: Math.max(1, x.quantity - 1) } : x)))} className="flex h-7 w-7 items-center justify-center rounded-md border border-[#E5E9ED] bg-white text-sm font-bold leading-none">−</button>
                     <span className="w-5 text-center tabular-nums">{l.quantity}</span>
                     <button type="button" aria-label={`Tăng số lượng ${l.name}`} onClick={() => setLines((prev) => prev.map((x, j) => (j === i ? { ...x, quantity: x.quantity + 1 } : x)))} className="flex h-7 w-7 items-center justify-center rounded-md border border-[#E5E9ED] bg-white text-sm font-bold leading-none">+</button>
                   </span>
+                  <span className="shrink-0 text-xs text-[#748294]">=</span>
                   <span className="w-16 shrink-0 text-right font-semibold tabular-nums text-[#244B70]">{formatVnd(l.unitPriceVnd * l.quantity)}</span>
                   <button type="button" aria-label={`Xóa ${l.name} khỏi bill`} onClick={() => setLines((prev) => prev.filter((_, j) => j !== i))} className="flex h-7 w-6 shrink-0 items-center justify-center text-[#C0392B] hover:opacity-70">
                     <X className="h-3.5 w-3.5" aria-hidden="true" />
@@ -677,6 +648,7 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
               />
               <Percent className="h-3.5 w-3.5" aria-hidden="true" />
               Chiết khấu
+              {discountOn ? null : <span className="font-normal text-[#B9AFA5]">Không áp dụng</span>}
             </label>
             <span className="flex items-center gap-1.5">
               <select
@@ -694,36 +666,37 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
             </span>
           </div>
 
-          <fieldset className="mt-2 shrink-0 rounded-lg border border-[#E5E9ED] bg-tint-50 px-2 py-1.5">
-            <legend className="sr-only">Phương thức thanh toán</legend>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
-              <label className="flex cursor-pointer items-center gap-1.5">
-                <input type="radio" name="pos-method" checked={method === "bank_transfer"} onChange={() => setMethod("bank_transfer")} className="h-4 w-4 accent-[#244B70]" />
-                <Landmark className="h-4 w-4 text-navy" aria-hidden="true" />
-                Chuyển khoản
-              </label>
-              <label className="flex cursor-pointer items-center gap-1.5">
-                <input type="radio" name="pos-method" checked={method === "cash"} onChange={() => setMethod("cash")} className="h-4 w-4 accent-[#244B70]" />
-                <Banknote className="h-4 w-4 text-navy" aria-hidden="true" />
-                Tiền mặt
-              </label>
-            </div>
-          </fieldset>
-
-          <dl className="mt-2 shrink-0 space-y-0.5 text-xs tabular-nums">
-            <div className="flex items-center justify-between gap-2">
-              <dt className="text-[#748294]">Tạm tính</dt>
-              <dd className="font-semibold">{formatVnd(subtotal)}</dd>
-            </div>
-            <div className="flex items-center justify-between gap-2">
-              <dt className="font-medium">Khách thanh toán</dt>
-              <dd className="text-lg font-bold leading-tight text-[#244B70]">{formatVnd(total)}</dd>
-            </div>
-          </dl>
-          <button type="button" onClick={() => void confirmBill()} disabled={confirming || lines.length === 0} className={`${btnPrimary} mt-2 min-h-[48px] w-full shrink-0 text-base`}>
-            <Check className="h-5 w-5" aria-hidden="true" />
-            {confirming ? "Đang xử lý..." : "Xác nhận bill"}
-          </button>
+          <div className="mt-2 flex shrink-0 items-center justify-between gap-2">
+            <fieldset className="rounded-lg border border-[#E5E9ED] bg-tint-50 px-2 py-1.5">
+              <legend className="sr-only">Phương thức thanh toán</legend>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                <label className="flex cursor-pointer items-center gap-1.5">
+                  <input type="radio" name="pos-method" checked={method === "bank_transfer"} onChange={() => setMethod("bank_transfer")} className="h-4 w-4 accent-[#244B70]" />
+                  <Landmark className="h-4 w-4 text-navy" aria-hidden="true" />
+                  Chuyển khoản
+                </label>
+                <label className="flex cursor-pointer items-center gap-1.5">
+                  <input type="radio" name="pos-method" checked={method === "cash"} onChange={() => setMethod("cash")} className="h-4 w-4 accent-[#244B70]" />
+                  <Banknote className="h-4 w-4 text-navy" aria-hidden="true" />
+                  Tiền mặt
+                </label>
+              </div>
+            </fieldset>
+            <dl className="shrink-0 text-right tabular-nums">
+              <dt className="text-xs text-[#748294]">Tạm tính</dt>
+              <dd className="text-base font-bold leading-tight">{formatVnd(subtotal)}</dd>
+            </dl>
+          </div>
+          <div className="mt-2 flex shrink-0 items-end justify-between gap-2">
+            <dl className="shrink-0 tabular-nums">
+              <dt className="text-xs text-[#748294]">Khách thanh toán</dt>
+              <dd className="text-2xl font-extrabold leading-tight text-[#244B70]">{formatVnd(total)}</dd>
+            </dl>
+            <button type="button" onClick={() => void confirmBill()} disabled={confirming || lines.length === 0} className={`${btnPrimary} min-h-[48px] flex-1 text-base`}>
+              <Check className="h-5 w-5" aria-hidden="true" />
+              {confirming ? "Đang xử lý..." : "Xác nhận bill"}
+            </button>
+          </div>
         </div>
       </div>
     </section>
@@ -855,44 +828,6 @@ function InvoiceDetail({
         </div>
       ) : null}
       <button type="button" onClick={onClose} className={`${btnSecondary} mt-4 w-full sm:w-auto`}>Đóng chi tiết</button>
-    </Card>
-  );
-}
-
-function CreateInvoiceForm({
-  completedBookings, completedLoading, onFromBooking, fromBookingPending,
-}: {
-  completedBookings: Row[];
-  completedLoading: boolean;
-  onFromBooking: (id: string) => void;
-  fromBookingPending: boolean;
-}) {
-  return (
-    <Card title="Tạo hóa đơn từ lịch hẹn">
-      <div className="space-y-4">
-        <div>
-          <p className="text-sm font-medium">Tạo hóa đơn từ lịch hoàn thành</p>
-          {completedLoading ? (
-            <Loading />
-          ) : completedBookings.length === 0 ? (
-            <p className="mt-1 text-sm text-[#748294]">Chưa có lịch hẹn nào hoàn thành chờ tạo hóa đơn.</p>
-          ) : (
-            <ul className="mt-2 space-y-2">
-              {completedBookings.map((bk) => (
-                <li key={idOf(bk)} className="flex items-center justify-between gap-2 rounded-lg border border-[#E5E9ED] p-3">
-                  <span className="min-w-0 flex-1 truncate text-sm">
-                    {s(bk, "customerName", "customer_name") || "Khách hàng"} · {formatDateTime(s(bk, "startAt", "start_at"))}
-                  </span>
-                  <button type="button" disabled={fromBookingPending} onClick={() => onFromBooking(idOf(bk))} className={`${btnSecondary} shrink-0`}>
-                    Tạo hóa đơn
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-        <p className="text-xs text-[#748294]">Muốn tạo hóa đơn thủ công, dùng POS ở trên: chọn dịch vụ, bấm “Xác nhận bill”.</p>
-      </div>
     </Card>
   );
 }

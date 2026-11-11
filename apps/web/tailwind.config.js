@@ -30,7 +30,7 @@ export default {
         },
       },
       fontFamily: {
-        sans: ["'Be Vietnam Pro'", "Inter", "system-ui", "sans-serif"],
+        sans: ["'Nunito'", "Inter", "system-ui", "sans-serif"],
       },
       boxShadow: {
         // Card chỉ dùng shadow rất nhẹ — DESIGN_SYSTEM.md §4.

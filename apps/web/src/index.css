@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* DESIGN_SYSTEM.md §2–§3: nền #F7F7F5, chữ #203247, Be Vietnam Pro ưu tiên. */
+/* DESIGN_SYSTEM.md §2–§3: nền #F7F7F5, chữ #203247, Nunito ưu tiên. */
 html {
   -webkit-text-size-adjust: 100%;
 }
@@ -10,7 +10,7 @@ html {
 body {
   background-color: #f7f7f5;
   color: #203247;
-  font-family: "Be Vietnam Pro", Inter, system-ui, sans-serif;
+  font-family: "Nunito", Inter, system-ui, sans-serif;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
