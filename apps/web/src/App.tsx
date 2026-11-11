@@ -42,11 +42,14 @@ function Shell() {
   const isPublic = ["/dang-nhap", "/quen-mat-khau", "/dang-ky", "/dat-lai-mat-khau"].includes(
     location.pathname,
   );
+  // Trang Bán hàng (POS) cần gần hết chiều ngang màn hình để bấm bill trong
+  // 1 màn hình không cuộn — chỉ route này bỏ max-w-3xl, các trang khác giữ nguyên.
+  const isSales = location.pathname === "/ban-hang";
   return (
     // Container mobile-first, max-w-3xl: các trang đã tự có p-4 nên container
     // không thêm padding ngang (tránh padding kép). Padding dưới chừa chỗ cho
     // BottomNav + safe-area trên điện thoại có tai thỏ.
-    <div className="mx-auto min-h-screen max-w-3xl bg-[#F7F7F5] pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
+    <div className={`mx-auto min-h-screen bg-[#F7F7F5] pb-[calc(5.5rem+env(safe-area-inset-bottom))] ${isSales ? "max-w-none" : "max-w-3xl"}`}>
       <Routes>
         <Route path="/dang-nhap" element={<LoginPage />} />
         <Route path="/quen-mat-khau" element={<ForgotPasswordPage />} />
