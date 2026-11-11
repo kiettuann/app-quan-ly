@@ -1,12 +1,14 @@
 // API client — CONTRACTS.md §5. Token từ localStorage ("ql_token"), base URL từ
 // VITE_API_URL (mặc định http://localhost:8787). Mọi response bọc { data, meta? }
 // hoặc { error: { code, message } }.
-import { formatVnd as formatVndShared } from "@quanly/shared";
-
 /** Web: hiển thị tiền KHÔNG kèm đơn vị "đ" — chỉ số, phân tách hàng nghìn
- * (vd: 150.000). Booking/admin giữ nguyên format có "đ" của shared. */
+ * LUÔN bằng dấu "." (vd: 150.000, 5.000, 1.250.000, 0). Nhóm thủ công thay
+ * vì toLocaleString để không phụ thuộc locale/ICU của trình duyệt.
+ * Booking/admin giữ nguyên format có "đ" của shared. */
 export function formatVnd(amountVnd: number): string {
-  return formatVndShared(amountVnd).replace(/đ$/, "");
+  const n = Math.trunc(amountVnd);
+  const grouped = String(Math.abs(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return n < 0 ? `-${grouped}` : grouped;
 }
 
 export const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8787";

@@ -2,12 +2,12 @@
 // chiết khấu, thu tiền ngay), rồi chi tiết hóa đơn (thu tiền / hoàn tiền).
 // Tổng tiền CHỈ lấy từ server trả về: giá mỗi dòng sửa trên bill chỉ là
 // tạm tính, máy chủ tính lại theo giá niêm yết khi tạo hóa đơn.
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ComponentType, PointerEvent as ReactPointerEvent } from "react";
 import {
-  Banknote, Check, ChevronDown, Droplets, Eye, GripHorizontal, GripVertical,
-  Landmark, LayoutGrid, Percent, Plus, Receipt, Search, Sparkles,
-  StickyNote, Trash2, UserRound, Users, X,
+  Banknote, Check, ChevronDown, Droplets, Eye, Landmark, LayoutGrid, Percent,
+  Plus, Receipt, Scissors, Search, Sparkles, StickyNote, Trash2, UserRound,
+  Users, X,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiPage, formatDateTime, formatVnd, get, post } from "../lib/api.js";
@@ -179,6 +179,12 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
   const categories = catsQ.data ?? [];
   const services = servicesQ.data ?? [];
   const employees = employeesQ.data ?? [];
+  // Thợ mặc định: luôn là thợ đầu tiên trong danh sách — tự chọn sẵn khi
+  // mở trang và khi xóa bill, thay cho ô trống "— Chọn thợ —".
+  const defaultTechnicianId = employees.length > 0 && employees[0] ? idOf(employees[0]) : "";
+  useEffect(() => {
+    if (!technicianId && defaultTechnicianId) setTechnicianId(defaultTechnicianId);
+  }, [technicianId, defaultTechnicianId]);
   // Chỉ 1 chi nhánh thì dùng luôn, khỏi bắt chọn.
   const resolvedBranchId = branches.length === 1 ? idOf(branches[0]) : branchId;
 
@@ -233,7 +239,7 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
     setPickedCustomer(null);
     setShowCustomerSearch(false);
     setCustomerSearch("");
-    setTechnicianId("");
+    setTechnicianId(defaultTechnicianId);
     setNote("");
     setShowNote(false);
     setDiscountOn(false);
@@ -434,12 +440,13 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
           ) : filteredServices.length === 0 ? (
             <p className="mt-2 text-sm text-[#748294]">Không tìm thấy dịch vụ nào.</p>
           ) : (
-            <div className="mt-2 grid min-h-0 flex-1 grid-cols-4 gap-1.5 overflow-y-auto pr-0.5 [scrollbar-width:thin]">
+            <div className="mt-2 grid min-h-0 flex-1 grid-cols-5 gap-1.5 overflow-y-auto pr-0.5 [scrollbar-width:thin]">
               {filteredServices.map((sv) => {
                 const catName = s(sv, "categoryName", "category_name");
-                // Ô đã chọn (đã có trong bill): sáng hơn, viền Navy đậm + badge
-                // số lượng lớn ở góc phải-trên của ô; chạm lại tăng số lượng
-                // thì badge cập nhật theo, xóa khỏi bill thì hết sáng.
+                // Ô đã chọn (đã có trong bill): sáng hơn, viền Navy đậm +
+                // số lượng HIỂN DẠNG SỐ TO, cùng màu xanh Navy với viền,
+                // KHÔNG nền, KHÔNG tiền tố "×", ở góc phải-trên của ô.
+                // Tên dài thì cắt 1 dòng + "…" (không xuống 2 dòng).
                 const qty = lines.find((l) => l.refId === idOf(sv))?.quantity ?? 0;
                 const selected = qty > 0;
                 return (
@@ -448,18 +455,18 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
                     type="button"
                     onClick={() => addToBill(sv)}
                     aria-pressed={selected}
-                    className={`relative flex min-h-[40px] items-center justify-center rounded-lg border px-1 py-1 text-center transition-colors hover:opacity-80 active:opacity-60 ${
+                    className={`relative flex min-h-[40px] min-w-0 items-center justify-center rounded-lg border px-1 py-1 text-center transition-colors hover:opacity-80 active:opacity-60 ${
                       selected
                         ? "border-2 border-navy bg-tint-100 text-navy shadow-md"
                         : tintFor(catName)
                     }`}
                   >
                     {selected ? (
-                      <span className="absolute -right-1 -top-1.5 flex h-6 min-w-6 items-center justify-center rounded-full bg-navy px-1 text-xs font-bold leading-none text-white shadow ring-2 ring-white">
-                        ×{qty}
+                      <span className="absolute -right-0.5 -top-1.5 text-lg font-extrabold leading-none text-navy">
+                        {qty}
                       </span>
                     ) : null}
-                    <span className="block text-[11px] font-semibold leading-tight line-clamp-2">{s(sv, "name")}</span>
+                    <span className="block w-full truncate text-[11px] font-semibold leading-tight">{s(sv, "name")}</span>
                   </button>
                 );
               })}
@@ -467,18 +474,20 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
           )}
         </div>
 
-        {/* Thanh kéo giữa 2 panel: kéo trái/phải trên desktop, lên/xuống trên mobile */}
+        {/* Thanh kéo giữa 2 panel: mảnh (chỉ 1 đường 3px, màu xanh thép khác
+            hẳn nền panel) để đọc ra là tay cầm nhưng không chiếm chỗ; kéo
+            trái/phải trên desktop, lên/xuống trên mobile. Vùng bấm vẫn đủ
+            rộng (padding trong suốt) để kéo được bằng ngón tay. */}
         <div
           role="separator"
           aria-label="Kéo để đổi kích thước 2 panel"
-          className="flex shrink-0 touch-none cursor-row-resize select-none items-center justify-center bg-tint-100 py-1.5 hover:bg-tint-200 active:bg-tint-300 lg:cursor-col-resize lg:px-1.5 lg:py-0"
+          className="group flex shrink-0 touch-none cursor-row-resize select-none items-center justify-center py-1.5 hover:opacity-80 lg:cursor-col-resize lg:px-1.5 lg:py-0"
           onPointerDown={onDividerPointerDown}
           onPointerMove={onDividerPointerMove}
           onPointerUp={onDividerPointerUp}
           onPointerCancel={onDividerPointerUp}
         >
-          <GripHorizontal className="h-4 w-4 text-navy lg:hidden" aria-hidden="true" />
-          <GripVertical className="hidden h-4 w-4 text-navy lg:block" aria-hidden="true" />
+          <span aria-hidden="true" className="h-[3px] w-16 rounded-full bg-[#9FBED8] transition-colors group-hover:bg-[#7FA8CC] group-active:bg-[#5B8FBF] lg:h-16 lg:w-[3px]" />
         </div>
 
         {/* Phải/dưới: bill của khách — hàng bill gọn, dòng bill tự cuộn, tổng tiền + nút xác nhận luôn thấy ở cuối */}
@@ -518,7 +527,10 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
           ) : null}
           <div className="mt-2 flex items-end gap-2">
             <div className="min-w-0 flex-1">
-              <label className="mb-1 block text-xs font-medium text-[#748294]">Tên khách</label>
+              <span className="mb-1 flex h-4 items-center text-[#748294]" title="Tên khách">
+                <UserRound className="h-4 w-4" aria-hidden="true" />
+                <span className="sr-only">Tên khách</span>
+              </span>
               <div className="flex">
                 <div className="relative min-w-0 flex-1">
                   <UserRound className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
@@ -537,7 +549,10 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
               </div>
             </div>
             <div className="w-[132px] shrink-0">
-              <label className="mb-1 block text-xs font-medium text-[#748294]">Tên thợ</label>
+              <span className="mb-1 flex h-4 items-center text-[#748294]" title="Tên thợ">
+                <Scissors className="h-4 w-4" aria-hidden="true" />
+                <span className="sr-only">Tên thợ</span>
+              </span>
               <div className="relative">
                 <select value={technicianId} onChange={(e) => setTechnicianId(e.target.value)} aria-label="Tên thợ" className={`${posInputCls} appearance-none pr-7`}>
                   <option value="">— Chọn thợ —</option>
@@ -611,16 +626,18 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
                 <li key={l.refId} className="flex items-center gap-1.5 border-b border-[#E5E9ED] pb-1 text-xs">
                   <span className="min-w-0 flex-1 truncate font-medium leading-tight">{l.name}</span>
                   <input
-                    type="number"
+                    type="text"
                     inputMode="numeric"
-                    min={0}
-                    value={l.unitPriceVnd}
+                    value={formatVnd(l.unitPriceVnd)}
                     aria-label={`Giá ${l.name} (VND)`}
                     onChange={(e) => {
-                      const v = Math.max(0, Number(e.target.value) || 0);
+                      // Hiển thị luôn có dấu "." phân cách nghìn (vd 100.000):
+                      // chỉ giữ lại chữ số rồi tính lại số tiền.
+                      const digits = e.target.value.replace(/\D/g, "");
+                      const v = digits ? Number(digits) : 0;
                       setLines((prev) => prev.map((x, j) => (j === i ? { ...x, unitPriceVnd: v } : x)));
                     }}
-                    className="h-7 w-[68px] shrink-0 rounded-md border border-[#E5E9ED] bg-white px-1.5 text-right text-xs tabular-nums focus:border-blue focus:outline-none"
+                    className="h-7 w-[72px] shrink-0 rounded-md border border-[#E5E9ED] bg-white px-1.5 text-right text-xs tabular-nums focus:border-blue focus:outline-none"
                   />
                   <span className="shrink-0 text-xs text-[#748294]">×</span>
                   <span className="flex shrink-0 items-center gap-0.5">
@@ -785,7 +802,7 @@ function InvoiceDetail({
         <div className="mt-4 space-y-3 border-t border-[#E5E9ED] pt-4">
           <p className="text-sm font-medium">Thu tiền</p>
           <Field label="Số tiền (VND)" error={payError ?? undefined}>
-            <input type="number" inputMode="numeric" min={1} value={payAmount} onChange={(e) => setPayAmount(e.target.value)} placeholder={`Tối đa ${remaining}`} className={inputCls} />
+            <input type="number" inputMode="numeric" min={1} value={payAmount} onChange={(e) => setPayAmount(e.target.value)} placeholder={`Tối đa ${formatVnd(remaining)}`} className={inputCls} />
           </Field>
           <Field label="Phương thức">
             <select value={payMethod} onChange={(e) => setPayMethod(e.target.value as "cash" | "bank_transfer")} className={inputCls}>
@@ -808,7 +825,7 @@ function InvoiceDetail({
         <div className="mt-4 space-y-3 border-t border-[#E5E9ED] pt-4">
           <p className="text-sm font-medium">Hoàn tiền</p>
           <Field label="Số tiền hoàn (VND)" error={refundError ?? undefined}>
-            <input type="number" inputMode="numeric" min={1} value={refundAmount} onChange={(e) => setRefundAmount(e.target.value)} placeholder={`Tối đa ${paid - refunded}`} className={inputCls} />
+            <input type="number" inputMode="numeric" min={1} value={refundAmount} onChange={(e) => setRefundAmount(e.target.value)} placeholder={`Tối đa ${formatVnd(paid - refunded)}`} className={inputCls} />
           </Field>
           <Field label="Lý do hoàn tiền">
             <input value={refundReason} onChange={(e) => setRefundReason(e.target.value)} placeholder="vd: Khách không hài lòng với dịch vụ" className={inputCls} />
