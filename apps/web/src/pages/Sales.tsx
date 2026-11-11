@@ -28,12 +28,26 @@ function norm(str: string): string {
     .toLowerCase();
 }
 
-/** Màu nhạt theo nhóm dịch vụ: Nail xanh, Gội hồng, Mi đào (chỉ tint nhẹ). */
-function tintFor(categoryName: string): string {
+/**
+ * Màu theo nhóm dịch vụ — mỗi nhóm giữ màu riêng cả khi chưa chọn lẫn khi
+ * đã chọn (Nail xanh, Gội hồng, Mi đào, Chăm sóc xanh lá, Nghệ thuật tím).
+ * Ô đã chọn KHÔNG đổi sang Navy đồng loạt: viền + số lượng dùng màu đậm
+ * của chính nhóm đó, nền là tint sáng hơn của nhóm.
+ */
+interface GroupStyle {
+  border: string;
+  bg: string;
+  text: string;
+  strong: string;
+  selBg: string;
+}
+function groupStyle(categoryName: string): GroupStyle {
   const c = norm(categoryName);
-  if (c.includes("goi")) return "border-[#EFC9D8] bg-[#FDF0F5] text-[#8A4B63]";
-  if (c.includes("mi")) return "border-[#F0DCC3] bg-[#FDF3E7] text-[#8A5A2B]";
-  return "border-[#C9DCEC] bg-[#EBF3FA] text-[#2C5A86]";
+  if (c.includes("goi")) return { border: "#E5B7CC", bg: "#FDF0F5", text: "#8A4B63", strong: "#C97A9E", selBg: "#FADCE9" };
+  if (c.includes("mi")) return { border: "#EACFA9", bg: "#FDF3E7", text: "#8A5A2B", strong: "#C99A4B", selBg: "#F7E8CF" };
+  if (c.includes("cham soc")) return { border: "#B5DCC0", bg: "#F1F8F1", text: "#3F7A4C", strong: "#5FA96E", selBg: "#DFF0E4" };
+  if (c.includes("nghe thuat")) return { border: "#CDB8E8", bg: "#F5F0FD", text: "#6B4A8A", strong: "#9A76C4", selBg: "#E9DCF6" };
+  return { border: "#C9DCEC", bg: "#EBF3FA", text: "#2C5A86", strong: "#3979A8", selBg: "#D7E8F5" };
 }
 
 type IconComponent = ComponentType<{ className?: string }>;
@@ -98,7 +112,9 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
   const [catId, setCatId] = useState("");
   const [search, setSearch] = useState("");
   const [showAdd, setShowAdd] = useState(false);
-  const [addForm, setAddForm] = useState({ name: "", categoryId: "", priceVnd: "", durationMinutes: "30" });
+  const [addForm, setAddForm] = useState({ name: "", categoryId: "", newGroupName: "", priceVnd: "", durationMinutes: "30" });
+  // Mobile: ô tìm kiếm thu gọn thành icon kính lúp; bấm mới mở ô nhập.
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
 
   const [lines, setLines] = useState<PosLine[]>([]);
@@ -206,12 +222,40 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
     });
   }, [services, catId, categories, search]);
 
+  // Chip nhóm: bản gọn cho mobile (chữ nhỏ, không wrap — kéo ngang trong
+  // 1 hàng) và bản thường cho desktop.
+  function renderChips(compact: boolean) {
+    const chipCls = (active: boolean) =>
+      `inline-flex shrink-0 items-center gap-1 rounded-lg font-semibold transition-colors ${
+        compact ? "min-h-[30px] px-2 text-[11px]" : "min-h-[34px] px-2.5 text-xs"
+      } ${active ? "bg-navy text-white" : "border border-border bg-white text-navy hover:bg-tint-50"}`;
+    const iconCls = compact ? "h-3 w-3" : "h-3.5 w-3.5";
+    return (
+      <>
+        <button type="button" onClick={() => setCatId("")} className={chipCls(catId === "")}>
+          <LayoutGrid className={iconCls} aria-hidden="true" />
+          Tất cả
+        </button>
+        {categories.map((c) => {
+          const CatIcon = iconForCategory(s(c, "name"));
+          const active = catId === idOf(c);
+          return (
+            <button key={idOf(c)} type="button" onClick={() => setCatId(idOf(c))} className={chipCls(active)}>
+              <CatIcon className={iconCls} aria-hidden="true" />
+              {s(c, "name")}
+            </button>
+          );
+        })}
+      </>
+    );
+  }
+
   const addServiceMut = useMutation({
     mutationFn: (body: Record<string, unknown>) => post<Row>("/api/v1/services", body),
     onSuccess: () => {
       setPosNotice({ kind: "success", text: "Đã thêm dịch vụ." });
       setShowAdd(false);
-      setAddForm({ name: "", categoryId: "", priceVnd: "", durationMinutes: "30" });
+      setAddForm({ name: "", categoryId: "", newGroupName: "", priceVnd: "", durationMinutes: "30" });
       setAddError(null);
       void qc.invalidateQueries({ queryKey: ["services"] });
     },
@@ -250,14 +294,28 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
   const discountVnd = discountOn ? Math.round((subtotal * discountPct) / 100) : 0;
   const total = Math.max(0, subtotal - discountVnd);
 
-  function submitAddService() {
+  async function submitAddService() {
     setAddError(null);
     if (!addForm.name.trim()) return setAddError("Vui lòng nhập tên dịch vụ.");
     if (addForm.priceVnd === "" || Number(addForm.priceVnd) < 0) return setAddError("Giá phải là số >= 0.");
     const dur = Number(addForm.durationMinutes);
     if (!Number.isInteger(dur) || dur < 5 || dur > 480) return setAddError("Thời lượng phải từ 5 đến 480 phút.");
+    // Thêm nhóm mới: tạo nhóm qua API trước rồi mới dùng id của nhóm đó
+    // cho dịch vụ (POST /api/v1/service-categories).
+    let categoryId = addForm.categoryId;
+    if (categoryId === "__new__") {
+      const groupName = addForm.newGroupName.trim();
+      if (!groupName) return setAddError("Vui lòng nhập tên nhóm mới.");
+      try {
+        const created = await post<Row>("/api/v1/service-categories", { name: groupName });
+        categoryId = idOf(created);
+        void qc.invalidateQueries({ queryKey: ["service-categories"] });
+      } catch (err) {
+        return setAddError(errMsg(err));
+      }
+    }
     addServiceMut.mutate({
-      categoryId: addForm.categoryId || undefined,
+      categoryId: categoryId || undefined,
       name: addForm.name.trim(),
       priceVnd: Number(addForm.priceVnd),
       durationMinutes: dur,
@@ -361,30 +419,54 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
       <div ref={posRef} className="flex min-h-0 flex-1 flex-col lg:flex-row">
         {/* Trên/trái: chọn dịch vụ — lưới tự cuộn bên trong */}
         <div className="flex min-h-0 min-w-0 flex-col" style={{ flex: `0 0 ${split}%` }}>
-          <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Lọc và tìm dịch vụ">
+          {/* Mobile: 3 hàng (chip / chip / tìm kiếm) gom thành 1 hàng duy
+              nhất — chip chữ nhỏ, kéo ngang; tìm kiếm và thêm chỉ còn icon. */}
+          <div className="flex items-center gap-1.5 lg:hidden" role="group" aria-label="Lọc và tìm dịch vụ">
+            <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {renderChips(true)}
+            </div>
             <button
               type="button"
-              onClick={() => setCatId("")}
-              className={`inline-flex min-h-[34px] items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition-colors ${catId === "" ? "bg-navy text-white" : "border border-border bg-white text-navy hover:bg-tint-50"}`}
+              onClick={() => setShowMobileSearch((v) => !v)}
+              aria-label="Tìm dịch vụ"
+              aria-expanded={showMobileSearch}
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-white text-navy hover:bg-tint-50 active:bg-tint-100"
             >
-              <LayoutGrid className="h-3.5 w-3.5" aria-hidden="true" />
-              Tất cả
+              <Search className="h-5 w-5" aria-hidden="true" />
             </button>
-            {categories.map((c) => {
-              const CatIcon = iconForCategory(s(c, "name"));
-              const active = catId === idOf(c);
-              return (
-                <button
-                  key={idOf(c)}
-                  type="button"
-                  onClick={() => setCatId(idOf(c))}
-                  className={`inline-flex min-h-[34px] items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition-colors ${active ? "bg-navy text-white" : "border border-border bg-white text-navy hover:bg-tint-50"}`}
-                >
-                  <CatIcon className="h-3.5 w-3.5" aria-hidden="true" />
-                  {s(c, "name")}
-                </button>
-              );
-            })}
+            <button
+              type="button"
+              onClick={() => { setShowAdd((v) => !v); setAddError(null); }}
+              aria-label="Thêm dịch vụ mới"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-white text-navy hover:bg-tint-50 active:bg-tint-100"
+            >
+              <Plus className="h-5 w-5" aria-hidden="true" />
+            </button>
+          </div>
+          {showMobileSearch ? (
+            <div className="relative mt-1.5 lg:hidden">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Tìm dịch vụ"
+                aria-label="Tìm dịch vụ"
+                autoFocus
+                className={`${posInputCls} pl-8 pr-8`}
+              />
+              <button
+                type="button"
+                onClick={() => { setSearch(""); setShowMobileSearch(false); }}
+                aria-label="Đóng tìm kiếm"
+                className="absolute right-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-muted hover:bg-tint-50"
+              >
+                <X className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </div>
+          ) : null}
+          {/* Desktop: giữ hàng chip + tìm kiếm + thêm như cũ. */}
+          <div className="hidden flex-wrap items-center gap-1.5 lg:flex" role="group" aria-label="Lọc và tìm dịch vụ">
+            {renderChips(false)}
             <div className="relative min-w-[140px] flex-1">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
               <input
@@ -418,12 +500,18 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
                     {categories.map((c) => (
                       <option key={idOf(c)} value={idOf(c)}>{s(c, "name")}</option>
                     ))}
+                    <option value="__new__">＋ Thêm nhóm mới</option>
                   </select>
                 </Field>
                 <Field label="Thời lượng (phút)">
                   <input type="number" inputMode="numeric" min={5} max={480} value={addForm.durationMinutes} onChange={(e) => setAddForm((f) => ({ ...f, durationMinutes: e.target.value }))} className={inputCls} />
                 </Field>
               </div>
+              {addForm.categoryId === "__new__" ? (
+                <Field label="Tên nhóm mới">
+                  <input value={addForm.newGroupName} onChange={(e) => setAddForm((f) => ({ ...f, newGroupName: e.target.value }))} placeholder="vd: Dưỡng da" className={inputCls} />
+                </Field>
+              ) : null}
               <Field label="Giá (VND)">
                 <input type="number" inputMode="numeric" min={0} value={addForm.priceVnd} onChange={(e) => setAddForm((f) => ({ ...f, priceVnd: e.target.value }))} placeholder="0" className={inputCls} />
               </Field>
@@ -443,26 +531,34 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
             <div className="mt-2 grid min-h-0 flex-1 grid-cols-5 gap-1.5 overflow-y-auto pr-0.5 [scrollbar-width:thin]">
               {filteredServices.map((sv) => {
                 const catName = s(sv, "categoryName", "category_name");
-                // Ô đã chọn (đã có trong bill): sáng hơn, viền Navy đậm +
-                // số lượng HIỂN DẠNG SỐ TO, cùng màu xanh Navy với viền,
-                // KHÔNG nền, KHÔNG tiền tố "×", ở góc phải-trên của ô.
-                // Tên dài thì cắt 1 dòng + "…" (không xuống 2 dòng).
+                // Ô đã chọn GIỮ MÀU NHÓM của nó (không đổi sang Navy đồng
+                // loạt): viền đậm + nền sáng hơn của chính nhóm đó; số lượng
+                // là hình chữ nhật nhỏ nằm gọn TRONG góc phải-trên của ô,
+                // số to, cùng màu với viền, không nền, không tiền tố "×".
                 const qty = lines.find((l) => l.refId === idOf(sv))?.quantity ?? 0;
                 const selected = qty > 0;
+                const gs = groupStyle(catName);
                 return (
                   <button
                     key={idOf(sv)}
                     type="button"
                     onClick={() => addToBill(sv)}
                     aria-pressed={selected}
+                    style={{
+                      borderColor: selected ? gs.strong : gs.border,
+                      backgroundColor: selected ? gs.selBg : gs.bg,
+                      color: gs.text,
+                    }}
                     className={`relative flex min-h-[40px] min-w-0 items-center justify-center rounded-lg border px-1 py-1 text-center transition-colors hover:opacity-80 active:opacity-60 ${
-                      selected
-                        ? "border-2 border-navy bg-tint-100 text-navy shadow-md"
-                        : tintFor(catName)
+                      selected ? "border-2 shadow-md" : ""
                     }`}
                   >
                     {selected ? (
-                      <span className="absolute -right-0.5 -top-1.5 text-lg font-extrabold leading-none text-navy">
+                      <span
+                        aria-hidden="true"
+                        className="absolute right-1 top-1 rounded-[3px] border px-1 py-px text-[13px] font-extrabold leading-none"
+                        style={{ borderColor: gs.strong, color: gs.strong }}
+                      >
                         {qty}
                       </span>
                     ) : null}
@@ -527,10 +623,9 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
           ) : null}
           <div className="mt-2 flex items-end gap-2">
             <div className="min-w-0 flex-1">
-              <span className="mb-1 flex h-4 items-center text-[#748294]" title="Tên khách">
-                <UserRound className="h-4 w-4" aria-hidden="true" />
-                <span className="sr-only">Tên khách</span>
-              </span>
+              {/* Icon UserRound trên nhãn đã bỏ (trùng với icon trong ô
+                  nhập) — giữ khoảng trống h-4 để 2 cột thẳng hàng. */}
+              <span className="mb-1 block h-4" aria-hidden="true" />
               <div className="flex">
                 <div className="relative min-w-0 flex-1">
                   <UserRound className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
@@ -605,21 +700,21 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
               )}
             </div>
           ) : null}
+          {/* Icon trong ô ghi chú đã bỏ (trùng với icon trên nút Ghi chú). */}
           {showNote || note.trim() ? (
-            <div className="relative mt-2">
-              <StickyNote className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
+            <div className="mt-2">
               <input
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="Ghi chú cho bill (không bắt buộc)"
                 aria-label="Ghi chú"
-                className={`${posInputCls} pl-8`}
+                className={posInputCls}
               />
             </div>
           ) : null}
 
           {lines.length === 0 ? (
-            <p className="mt-2 min-h-16 flex-1 text-xs text-[#748294]">Chạm vào một dịch vụ để thêm vào bill.</p>
+            <div className="mt-2 min-h-16 flex-1" aria-hidden="true" />
           ) : (
             <ul className="mt-2 min-h-16 flex-1 space-y-1 overflow-y-auto pr-0.5 [scrollbar-width:thin]">
               {lines.map((l, i) => (
