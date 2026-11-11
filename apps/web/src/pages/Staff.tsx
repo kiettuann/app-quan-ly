@@ -94,7 +94,7 @@ export default function StaffPage() {
         </button>
       </div>
       {notice ? <Notice kind={notice.kind} text={notice.text} onClose={() => setNotice(null)} /> : null}
-      <Link to="/cham-cong" className="inline-flex min-h-[44px] items-center rounded-lg border border-[#E5E9ED] bg-white px-4 text-sm font-semibold text-[#3979A8]">
+      <Link to="/cham-cong" className="inline-flex min-h-[44px] w-full items-center justify-center rounded-lg border border-[#E5E9ED] bg-white px-4 text-sm font-semibold text-[#3979A8] sm:w-auto">
         Chấm công →
       </Link>
 
@@ -122,7 +122,7 @@ export default function StaffPage() {
               <input type="number" inputMode="numeric" min={0} value={form.baseSalaryVnd} onChange={(e) => setForm((f) => ({ ...f, baseSalaryVnd: e.target.value }))} className={inputCls} />
             </Field>
             {formError ? <p role="alert" className="text-sm text-[#C0392B]">{formError}</p> : null}
-            <button type="button" onClick={submit} disabled={saveMut.isPending} className={btnPrimary}>
+            <button type="button" onClick={submit} disabled={saveMut.isPending} className={`${btnPrimary} w-full`}>
               {saveMut.isPending ? "Đang xử lý..." : editing ? "Lưu thay đổi" : "Thêm nhân viên"}
             </button>
           </div>
@@ -149,17 +149,17 @@ export default function StaffPage() {
           <ul className="space-y-3">
             {staff.map((e) => (
               <li key={idOf(e)} className="flex items-center justify-between gap-2 rounded-lg border border-[#E5E9ED] p-3">
-                <div>
-                  <p className="text-sm font-medium">{s(e, "fullName", "full_name")}</p>
-                  <p className="text-xs text-[#748294]">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{s(e, "fullName", "full_name")}</p>
+                  <p className="truncate text-xs text-[#748294]">
                     {s(e, "position") || "Chưa có chức vụ"} · {s(e, "phone") || "Chưa có SĐT"}
                   </p>
-                  <p className="text-xs text-[#748294]">
+                  <p className="truncate text-xs tabular-nums text-[#748294]">
                     Lương cơ bản: {formatVnd(n(e, "baseSalaryVnd", "base_salary_vnd"))}
                     {s(e, "hireDate", "hire_date") ? ` · Vào làm: ${formatDate(s(e, "hireDate", "hire_date"))}` : ""}
                   </p>
                 </div>
-                <button type="button" onClick={() => startEdit(e)} className={btnSecondary}>Sửa</button>
+                <button type="button" onClick={() => startEdit(e)} className={`${btnSecondary} shrink-0`}>Sửa</button>
               </li>
             ))}
           </ul>

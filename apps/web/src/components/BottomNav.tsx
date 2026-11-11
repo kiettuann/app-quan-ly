@@ -2,6 +2,7 @@ import { CalendarDays, LayoutDashboard, Plus, ShoppingBag, Users } from "lucide-
 import { NavLink } from "react-router-dom";
 
 // Hybrid Navigation — DESIGN_SYSTEM.md §7. 5 mục, nhãn đầy đủ, không dùng icon thay nhãn.
+// Active: chữ Navy + nền tint nhạt dạng pill; inactive: chữ phụ, mờ.
 const ITEMS = [
   { to: "/", label: "Tổng quan", Icon: LayoutDashboard },
   { to: "/lich-hen", label: "Lịch hẹn", Icon: CalendarDays },
@@ -11,29 +12,34 @@ const ITEMS = [
 
 export default function BottomNav({ onOpenDrawer }: { onOpenDrawer: () => void }) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 border-t border-[#E5E9ED] bg-white">
-      <div className="mx-auto flex max-w-3xl">
+    <nav
+      aria-label="Điều hướng chính"
+      className="fixed bottom-0 left-0 right-0 border-t border-border bg-white pb-[env(safe-area-inset-bottom)]"
+    >
+      <div className="mx-auto flex max-w-3xl px-1 py-1">
         {ITEMS.map(({ to, label, Icon }) => (
           <NavLink
             key={to}
             to={to}
             end={to === "/"}
+            aria-label={label}
             className={({ isActive }) =>
-              `flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 text-xs ${
-                isActive ? "font-semibold text-[#244B70]" : "text-[#748294]"
+              `flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 rounded-xl text-xs ${
+                isActive ? "bg-tint-100 font-semibold text-navy" : "font-medium text-muted hover:bg-tint-50 hover:text-ink"
               }`
             }
           >
-            <Icon size={20} />
+            <Icon size={20} aria-hidden="true" />
             {label}
           </NavLink>
         ))}
         <button
           type="button"
           onClick={onOpenDrawer}
-          className="flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 text-xs text-[#748294]"
+          aria-label="Mở chức năng mở rộng"
+          className="flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 rounded-xl text-xs font-medium text-muted hover:bg-tint-50 hover:text-ink"
         >
-          <Plus size={20} />
+          <Plus size={20} aria-hidden="true" />
           Thêm
         </button>
       </div>

@@ -38,10 +38,11 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="p-4">
+    <main className="mx-auto w-full max-w-md p-4">
       <h1 className="text-xl font-bold text-[#244B70]">quanly.store</h1>
       <p className="mt-1 text-sm text-[#748294]">Đăng nhập để quản lý tiệm nail của bạn.</p>
-      <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
+      <div className="mt-6 rounded-lg border border-[#E5E9ED] bg-white p-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <label htmlFor="email" className="text-sm font-medium">Email</label>
           <input
@@ -76,11 +77,12 @@ export default function LoginPage() {
           {loading ? "Đang xử lý..." : "Đăng nhập"}
         </button>
       </form>
+    </div>
       <div className="mt-4 flex items-center justify-between text-sm">
-        <Link to="/quen-mat-khau" className="font-semibold text-[#3979A8]">
+        <Link to="/quen-mat-khau" className="inline-flex min-h-[44px] items-center font-semibold text-[#3979A8]">
           Quên mật khẩu?
         </Link>
-        <Link to="/dang-ky" className="font-semibold text-[#3979A8]">
+        <Link to="/dang-ky" className="inline-flex min-h-[44px] items-center font-semibold text-[#3979A8]">
           Đăng ký tiệm mới
         </Link>
       </div>

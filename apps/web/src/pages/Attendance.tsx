@@ -96,10 +96,10 @@ export default function AttendancePage() {
             </select>
           </Field>
           <div className="flex gap-2">
-            <button type="button" disabled={checkInMut.isPending || !employeeId || !branchId} onClick={() => checkInMut.mutate()} className={btnPrimary}>
+            <button type="button" disabled={checkInMut.isPending || !employeeId || !branchId} onClick={() => checkInMut.mutate()} className={`${btnPrimary} flex-1`}>
               {checkInMut.isPending ? "Đang xử lý..." : "Check-in"}
             </button>
-            <button type="button" disabled={checkOutMut.isPending || !employeeId || !branchId} onClick={() => checkOutMut.mutate()} className={btnSecondary}>
+            <button type="button" disabled={checkOutMut.isPending || !employeeId || !branchId} onClick={() => checkOutMut.mutate()} className={`${btnSecondary} flex-1`}>
               {checkOutMut.isPending ? "Đang xử lý..." : "Check-out"}
             </button>
           </div>
@@ -116,9 +116,9 @@ export default function AttendancePage() {
         ) : (
           <ul className="space-y-2">
             {records.map((r) => (
-              <li key={idOf(r)} className="flex justify-between gap-2 rounded-lg border border-[#E5E9ED] p-3 text-sm">
-                <span>{s(r, "employeeName", "employee_name") || "Nhân viên"}</span>
-                <span className="text-[#748294]">
+              <li key={idOf(r)} className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 rounded-lg border border-[#E5E9ED] p-3 text-sm">
+                <span className="min-w-0 flex-1 truncate">{s(r, "employeeName", "employee_name") || "Nhân viên"}</span>
+                <span className="text-right text-[#748294]">
                   Vào: {s(r, "checkInAt", "check_in_at") ? formatDateTime(s(r, "checkInAt", "check_in_at")) : "—"}
                   {" · "}Ra: {s(r, "checkOutAt", "check_out_at") ? formatDateTime(s(r, "checkOutAt", "check_out_at")) : "—"}
                 </span>
@@ -138,9 +138,9 @@ export default function AttendancePage() {
         ) : (
           <ul className="space-y-2">
             {(shiftsQ.data ?? []).map((sh) => (
-              <li key={idOf(sh)} className="flex justify-between gap-2 rounded-lg border border-[#E5E9ED] p-3 text-sm">
-                <span>{s(sh, "employeeName", "employee_name") || "Nhân viên"}</span>
-                <span className="text-[#748294]">{s(sh, "startTime", "start_time")} – {s(sh, "endTime", "end_time")}</span>
+              <li key={idOf(sh)} className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 rounded-lg border border-[#E5E9ED] p-3 text-sm">
+                <span className="min-w-0 flex-1 truncate">{s(sh, "employeeName", "employee_name") || "Nhân viên"}</span>
+                <span className="shrink-0 text-right tabular-nums text-[#748294]">{s(sh, "startTime", "start_time")} – {s(sh, "endTime", "end_time")}</span>
               </li>
             ))}
           </ul>
@@ -175,7 +175,7 @@ export default function AttendancePage() {
               if (shift.endTime <= shift.startTime) return setShiftError("Giờ kết thúc phải sau giờ bắt đầu.");
               shiftMut.mutate();
             }}
-            className={btnPrimary}
+            className={`${btnPrimary} w-full`}
           >
             {shiftMut.isPending ? "Đang xử lý..." : "Tạo ca"}
           </button>

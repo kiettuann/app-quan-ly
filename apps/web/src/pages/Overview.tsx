@@ -47,7 +47,7 @@ export default function OverviewPage() {
 
       <div className="grid grid-cols-2 gap-3">
         <Card title="Doanh thu hôm nay">
-          <p className="text-lg font-bold text-[#244B70]">{formatVnd(revenueToday)}</p>
+          <p className="text-lg font-bold tabular-nums text-[#244B70]">{formatVnd(revenueToday)}</p>
         </Card>
         <Card title="Lịch hẹn hôm nay">
           <p className="text-lg font-bold text-[#244B70]">{bookingsToday}</p>
@@ -63,7 +63,7 @@ export default function OverviewPage() {
 
       {commissionToday > 0 ? (
         <Card title="Hoa hồng tạm tính hôm nay">
-          <p className="text-base font-semibold text-[#244B70]">{formatVnd(commissionToday)}</p>
+          <p className="text-base font-semibold tabular-nums text-[#244B70]">{formatVnd(commissionToday)}</p>
         </Card>
       ) : null}
 
@@ -88,13 +88,15 @@ export default function OverviewPage() {
           <ul className="space-y-3">
             {upcoming.slice(0, 5).map((bk) => (
               <li key={idOf(bk)} className="flex items-center justify-between gap-2 border-b border-[#E5E9ED] pb-3 last:border-0 last:pb-0">
-                <div>
-                  <p className="text-sm font-medium">{s(bk, "customerName", "customer_name") || "Khách hàng"}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{s(bk, "customerName", "customer_name") || "Khách hàng"}</p>
                   <p className="text-xs text-[#748294]">{formatDateTime(s(bk, "startAt", "start_at"))}</p>
                 </div>
-                <Badge tone={badgeToneForStatus(s(bk, "status"))}>
-                  {BOOKING_STATUS_LABEL[s(bk, "status")] ?? s(bk, "status")}
-                </Badge>
+                <span className="shrink-0">
+                  <Badge tone={badgeToneForStatus(s(bk, "status"))}>
+                    {BOOKING_STATUS_LABEL[s(bk, "status")] ?? s(bk, "status")}
+                  </Badge>
+                </span>
               </li>
             ))}
           </ul>

@@ -134,7 +134,7 @@ export default function CustomersPage() {
               <textarea value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={2} className="mt-1 w-full rounded-lg border border-[#E5E9ED] bg-white px-3 py-2 text-sm" />
             </Field>
             {formError ? <p role="alert" className="text-sm text-[#C0392B]">{formError}</p> : null}
-            <button type="button" onClick={submit} disabled={saveMut.isPending} className={btnPrimary}>
+            <button type="button" onClick={submit} disabled={saveMut.isPending} className={`${btnPrimary} w-full`}>
               {saveMut.isPending ? "Đang xử lý..." : editing ? "Lưu thay đổi" : "Thêm khách hàng"}
             </button>
           </div>
@@ -153,9 +153,9 @@ export default function CustomersPage() {
             {customers.map((c) => (
               <li key={idOf(c)}>
                 <button type="button" onClick={() => setSelectedId(idOf(c))} className="block w-full rounded-lg border border-[#E5E9ED] p-3 text-left">
-                  <span className="text-sm font-medium">{s(c, "fullName", "full_name")}</span>
-                  <span className="mt-1 block text-xs text-[#748294]">{s(c, "phone")}{s(c, "email") ? ` · ${s(c, "email")}` : ""}</span>
-                  <span className="mt-1 block text-sm">
+                  <span className="block truncate text-sm font-medium">{s(c, "fullName", "full_name")}</span>
+                  <span className="mt-1 block truncate text-xs text-[#748294]">{s(c, "phone")}{s(c, "email") ? ` · ${s(c, "email")}` : ""}</span>
+                  <span className="mt-1 block text-sm tabular-nums">
                     Tổng chi tiêu: {formatVnd(n(c, "totalSpent", "total_spent"))} · {n(c, "totalVisits", "total_visits")} lần đến
                   </span>
                 </button>
@@ -172,14 +172,14 @@ export default function CustomersPage() {
           ) : (
             <>
               <dl className="space-y-2 text-sm">
-                <div className="flex justify-between gap-2"><dt className="text-[#748294]">Họ tên</dt><dd className="font-medium">{s(selected, "fullName", "full_name")}</dd></div>
-                <div className="flex justify-between gap-2"><dt className="text-[#748294]">SĐT</dt><dd>{s(selected, "phone")}</dd></div>
-                {s(selected, "email") ? <div className="flex justify-between gap-2"><dt className="text-[#748294]">Email</dt><dd>{s(selected, "email")}</dd></div> : null}
-                {s(selected, "dob") ? <div className="flex justify-between gap-2"><dt className="text-[#748294]">Ngày sinh</dt><dd>{formatDate(s(selected, "dob"))}</dd></div> : null}
-                {s(selected, "gender") ? <div className="flex justify-between gap-2"><dt className="text-[#748294]">Giới tính</dt><dd>{GENDER_LABEL[s(selected, "gender")] ?? s(selected, "gender")}</dd></div> : null}
-                <div className="flex justify-between gap-2"><dt className="text-[#748294]">Tổng chi tiêu</dt><dd>{formatVnd(n(selected, "totalSpent", "total_spent"))}</dd></div>
-                <div className="flex justify-between gap-2"><dt className="text-[#748294]">Số lần đến</dt><dd>{n(selected, "totalVisits", "total_visits")}</dd></div>
-                {s(selected, "notes") ? <div className="flex justify-between gap-2"><dt className="text-[#748294]">Ghi chú</dt><dd>{s(selected, "notes")}</dd></div> : null}
+                <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Họ tên</dt><dd className="min-w-0 break-words text-right font-medium">{s(selected, "fullName", "full_name")}</dd></div>
+                <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">SĐT</dt><dd className="text-right">{s(selected, "phone")}</dd></div>
+                {s(selected, "email") ? <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Email</dt><dd className="min-w-0 break-all text-right">{s(selected, "email")}</dd></div> : null}
+                {s(selected, "dob") ? <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Ngày sinh</dt><dd className="text-right">{formatDate(s(selected, "dob"))}</dd></div> : null}
+                {s(selected, "gender") ? <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Giới tính</dt><dd className="text-right">{GENDER_LABEL[s(selected, "gender")] ?? s(selected, "gender")}</dd></div> : null}
+                <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Tổng chi tiêu</dt><dd className="text-right tabular-nums">{formatVnd(n(selected, "totalSpent", "total_spent"))}</dd></div>
+                <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Số lần đến</dt><dd className="text-right tabular-nums">{n(selected, "totalVisits", "total_visits")}</dd></div>
+                {s(selected, "notes") ? <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Ghi chú</dt><dd className="min-w-0 break-words text-right">{s(selected, "notes")}</dd></div> : null}
               </dl>
               <div className="mt-3">
                 <button type="button" onClick={() => startEdit(selected)} className={btnSecondary}>Sửa thông tin</button>
@@ -192,8 +192,8 @@ export default function CustomersPage() {
                   <ul className="mt-1 space-y-1 text-sm">
                     {(historyBookingsQ.data ?? []).map((bk) => (
                       <li key={idOf(bk)} className="flex justify-between gap-2">
-                        <span>{formatDateTime(s(bk, "startAt", "start_at"))}</span>
-                        <Badge tone={badgeToneForStatus(s(bk, "status"))}>{BOOKING_STATUS_LABEL[s(bk, "status")] ?? s(bk, "status")}</Badge>
+                        <span className="min-w-0 flex-1">{formatDateTime(s(bk, "startAt", "start_at"))}</span>
+                        <span className="shrink-0"><Badge tone={badgeToneForStatus(s(bk, "status"))}>{BOOKING_STATUS_LABEL[s(bk, "status")] ?? s(bk, "status")}</Badge></span>
                       </li>
                     ))}
                   </ul>
@@ -207,14 +207,14 @@ export default function CustomersPage() {
                   <ul className="mt-1 space-y-1 text-sm">
                     {(historyInvoicesQ.data ?? []).map((inv) => (
                       <li key={idOf(inv)} className="flex justify-between gap-2">
-                        <span>{formatDateTime(s(inv, "createdAt", "created_at"))}</span>
-                        <span>{formatVnd(n(inv, "totalVnd", "total_vnd"))} · {INVOICE_STATUS_LABEL[s(inv, "status")] ?? s(inv, "status")}</span>
+                        <span className="min-w-0 flex-1">{formatDateTime(s(inv, "createdAt", "created_at"))}</span>
+                        <span className="shrink-0 text-right tabular-nums">{formatVnd(n(inv, "totalVnd", "total_vnd"))} · {INVOICE_STATUS_LABEL[s(inv, "status")] ?? s(inv, "status")}</span>
                       </li>
                     ))}
                   </ul>
                 )}
               </div>
-              <button type="button" onClick={() => setSelectedId(null)} className={`${btnSecondary} mt-4`}>Đóng chi tiết</button>
+              <button type="button" onClick={() => setSelectedId(null)} className={`${btnSecondary} mt-4 w-full sm:w-auto`}>Đóng chi tiết</button>
             </>
           )}
         </Card>

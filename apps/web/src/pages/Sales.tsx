@@ -69,7 +69,7 @@ export default function SalesPage() {
       <button
         type="button"
         onClick={() => setNotice({ kind: "info", text: "Tính năng đặt cọc / thanh toán online sắp ra mắt." })}
-        className={btnSecondary}
+        className={`${btnSecondary} w-full sm:w-auto`}
       >
         Thu tiền cọc
       </button>
@@ -112,13 +112,15 @@ export default function SalesPage() {
               <li key={idOf(inv)}>
                 <button type="button" onClick={() => setSelectedId(idOf(inv))} className="block w-full rounded-lg border border-[#E5E9ED] p-3 text-left">
                   <span className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-medium">{s(inv, "invoiceNumber", "invoice_number", "code") || `Hóa đơn ${idOf(inv).slice(0, 8)}`}</span>
-                    <Badge tone={badgeToneForStatus(s(inv, "status"))}>{INVOICE_STATUS_LABEL[s(inv, "status")] ?? s(inv, "status")}</Badge>
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium">{s(inv, "invoiceNumber", "invoice_number", "code") || `Hóa đơn ${idOf(inv).slice(0, 8)}`}</span>
+                    <span className="shrink-0">
+                      <Badge tone={badgeToneForStatus(s(inv, "status"))}>{INVOICE_STATUS_LABEL[s(inv, "status")] ?? s(inv, "status")}</Badge>
+                    </span>
                   </span>
                   <span className="mt-1 block text-xs text-[#748294]">
                     {formatDateTime(s(inv, "createdAt", "created_at"))} · {s(inv, "customerName", "customer_name") || "Khách lẻ"}
                   </span>
-                  <span className="mt-1 block text-sm font-semibold text-[#244B70]">
+                  <span className="mt-1 block text-sm font-semibold tabular-nums text-[#244B70]">
                     {formatVnd(n(inv, "totalVnd", "total_vnd"))} · Đã thu {formatVnd(n(inv, "paidVnd", "paid_vnd"))}
                   </span>
                 </button>
@@ -182,9 +184,9 @@ function InvoiceDetail({
   return (
     <Card title={`Hóa đơn ${s(invoice, "invoiceNumber", "invoice_number", "code") || idOf(invoice).slice(0, 8)}`}>
       <dl className="space-y-2 text-sm">
-        <div className="flex justify-between gap-2"><dt className="text-[#748294]">Khách hàng</dt><dd className="font-medium">{s(invoice, "customerName", "customer_name") || "Khách lẻ"}</dd></div>
-        <div className="flex justify-between gap-2"><dt className="text-[#748294]">Ngày tạo</dt><dd>{formatDateTime(s(invoice, "createdAt", "created_at"))}</dd></div>
-        <div className="flex justify-between gap-2"><dt className="text-[#748294]">Trạng thái</dt><dd><Badge tone={badgeToneForStatus(s(invoice, "status"))}>{INVOICE_STATUS_LABEL[s(invoice, "status")] ?? s(invoice, "status")}</Badge></dd></div>
+        <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Khách hàng</dt><dd className="min-w-0 break-words text-right font-medium">{s(invoice, "customerName", "customer_name") || "Khách lẻ"}</dd></div>
+        <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Ngày tạo</dt><dd className="text-right">{formatDateTime(s(invoice, "createdAt", "created_at"))}</dd></div>
+        <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Trạng thái</dt><dd className="shrink-0"><Badge tone={badgeToneForStatus(s(invoice, "status"))}>{INVOICE_STATUS_LABEL[s(invoice, "status")] ?? s(invoice, "status")}</Badge></dd></div>
       </dl>
       <p className="mt-3 text-sm font-medium">Dòng hóa đơn</p>
       {items.length === 0 ? (
@@ -193,20 +195,20 @@ function InvoiceDetail({
         <ul className="mt-1 space-y-1 text-sm">
           {items.map((it, i) => (
             <li key={i} className="flex justify-between gap-2">
-              <span>{s(it, "name")} × {n(it, "quantity")}</span>
-              <span>{formatVnd(n(it, "unitPriceVnd", "unit_price_vnd") * n(it, "quantity"))}</span>
+              <span className="min-w-0 flex-1 truncate">{s(it, "name")} × {n(it, "quantity")}</span>
+              <span className="shrink-0 tabular-nums">{formatVnd(n(it, "unitPriceVnd", "unit_price_vnd") * n(it, "quantity"))}</span>
             </li>
           ))}
         </ul>
       )}
-      <dl className="mt-3 space-y-1 border-t border-[#E5E9ED] pt-3 text-sm">
-        <div className="flex justify-between"><dt className="text-[#748294]">Tạm tính</dt><dd>{formatVnd(n(invoice, "subtotalVnd", "subtotal_vnd"))}</dd></div>
-        <div className="flex justify-between"><dt className="text-[#748294]">Giảm giá</dt><dd>−{formatVnd(n(invoice, "discountVnd", "discount_vnd"))}</dd></div>
-        <div className="flex justify-between"><dt className="text-[#748294]">Phụ phí</dt><dd>+{formatVnd(n(invoice, "surchargeVnd", "surcharge_vnd"))}</dd></div>
-        <div className="flex justify-between font-semibold"><dt>Tổng tiền (theo máy chủ)</dt><dd>{formatVnd(total)}</dd></div>
-        <div className="flex justify-between"><dt className="text-[#748294]">Đã thu</dt><dd>{formatVnd(paid)}</dd></div>
-        {refunded > 0 ? <div className="flex justify-between"><dt className="text-[#748294]">Đã hoàn</dt><dd>{formatVnd(refunded)}</dd></div> : null}
-        <div className="flex justify-between font-semibold text-[#244B70]"><dt>Còn lại</dt><dd>{formatVnd(Math.max(0, remaining))}</dd></div>
+      <dl className="mt-3 space-y-1 border-t border-[#E5E9ED] pt-3 text-sm tabular-nums">
+        <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Tạm tính</dt><dd className="text-right">{formatVnd(n(invoice, "subtotalVnd", "subtotal_vnd"))}</dd></div>
+        <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Giảm giá</dt><dd className="text-right">−{formatVnd(n(invoice, "discountVnd", "discount_vnd"))}</dd></div>
+        <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Phụ phí</dt><dd className="text-right">+{formatVnd(n(invoice, "surchargeVnd", "surcharge_vnd"))}</dd></div>
+        <div className="flex justify-between gap-2 font-semibold"><dt className="shrink-0">Tổng tiền (theo máy chủ)</dt><dd className="text-right">{formatVnd(total)}</dd></div>
+        <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Đã thu</dt><dd className="text-right">{formatVnd(paid)}</dd></div>
+        {refunded > 0 ? <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Đã hoàn</dt><dd className="text-right">{formatVnd(refunded)}</dd></div> : null}
+        <div className="flex justify-between gap-2 font-semibold text-[#244B70]"><dt className="shrink-0">Còn lại</dt><dd className="text-right">{formatVnd(Math.max(0, remaining))}</dd></div>
       </dl>
       {payments.length > 0 ? (
         <>
@@ -214,8 +216,8 @@ function InvoiceDetail({
           <ul className="mt-1 space-y-1 text-sm text-[#748294]">
             {payments.map((p, i) => (
               <li key={i} className="flex justify-between gap-2">
-                <span>{formatDateTime(s(p, "createdAt", "created_at"))} · {s(p, "method") === "bank_transfer" ? "Chuyển khoản" : "Tiền mặt"}</span>
-                <span>{formatVnd(n(p, "amountVnd", "amount_vnd"))}</span>
+                <span className="min-w-0 flex-1">{formatDateTime(s(p, "createdAt", "created_at"))} · {s(p, "method") === "bank_transfer" ? "Chuyển khoản" : "Tiền mặt"}</span>
+                <span className="shrink-0 tabular-nums">{formatVnd(n(p, "amountVnd", "amount_vnd"))}</span>
               </li>
             ))}
           </ul>
@@ -238,7 +240,7 @@ function InvoiceDetail({
             type="button"
             disabled={payMut.isPending || !payAmount || Number(payAmount) <= 0}
             onClick={() => { setPayError(null); payMut.mutate(); }}
-            className={btnPrimary}
+            className={`${btnPrimary} w-full`}
           >
             {payMut.isPending ? "Đang xử lý..." : "Thu tiền"}
           </button>
@@ -262,13 +264,13 @@ function InvoiceDetail({
               setRefundError(null);
               refundMut.mutate();
             }}
-            className={btnDanger}
+            className={`${btnDanger} w-full`}
           >
             {refundMut.isPending ? "Đang xử lý..." : "Hoàn tiền"}
           </button>
         </div>
       ) : null}
-      <button type="button" onClick={onClose} className={`${btnSecondary} mt-4`}>Đóng chi tiết</button>
+      <button type="button" onClick={onClose} className={`${btnSecondary} mt-4 w-full sm:w-auto`}>Đóng chi tiết</button>
     </Card>
   );
 }
@@ -360,10 +362,10 @@ function CreateInvoiceForm({
             <ul className="mt-2 space-y-2">
               {completedBookings.map((bk) => (
                 <li key={idOf(bk)} className="flex items-center justify-between gap-2 rounded-lg border border-[#E5E9ED] p-3">
-                  <span className="text-sm">
+                  <span className="min-w-0 flex-1 truncate text-sm">
                     {s(bk, "customerName", "customer_name") || "Khách hàng"} · {formatDateTime(s(bk, "startAt", "start_at"))}
                   </span>
-                  <button type="button" disabled={fromBookingPending} onClick={() => onFromBooking(idOf(bk))} className={btnSecondary}>
+                  <button type="button" disabled={fromBookingPending} onClick={() => onFromBooking(idOf(bk))} className={`${btnSecondary} shrink-0`}>
                     Tạo hóa đơn
                   </button>
                 </li>
@@ -392,12 +394,12 @@ function CreateInvoiceForm({
         </Field>
         <div>
           <p className="text-sm font-medium">Thêm dòng</p>
-          <div className="mt-1 flex gap-2">
-            <select value={pickType} onChange={(e) => { setPickType(e.target.value as "service" | "product"); setPickId(""); }} className={inputCls}>
+          <div className="mt-1 grid grid-cols-2 gap-2">
+            <select value={pickType} onChange={(e) => { setPickType(e.target.value as "service" | "product"); setPickId(""); }} className={`${inputCls} min-w-0`}>
               <option value="service">Dịch vụ</option>
               <option value="product">Sản phẩm</option>
             </select>
-            <select value={pickId} onChange={(e) => setPickId(e.target.value)} className={inputCls}>
+            <select value={pickId} onChange={(e) => setPickId(e.target.value)} className={`${inputCls} min-w-0`}>
               <option value="">— Chọn —</option>
               {(pickType === "service" ? (servicesQ.data ?? []) : (productsQ.data ?? [])).map((x) => (
                 <option key={idOf(x)} value={idOf(x)}>
@@ -407,8 +409,8 @@ function CreateInvoiceForm({
             </select>
           </div>
           <div className="mt-2 flex gap-2">
-            <input type="number" inputMode="numeric" min={1} value={pickQty} onChange={(e) => setPickQty(e.target.value)} aria-label="Số lượng" className={inputCls} />
-            <button type="button" onClick={addLine} className={btnSecondary}>Thêm dòng</button>
+            <input type="number" inputMode="numeric" min={1} value={pickQty} onChange={(e) => setPickQty(e.target.value)} aria-label="Số lượng" className={`${inputCls} min-w-0 flex-1`} />
+            <button type="button" onClick={addLine} className={`${btnSecondary} shrink-0`}>Thêm dòng</button>
           </div>
         </div>
         {lines.length === 0 ? (
@@ -417,8 +419,8 @@ function CreateInvoiceForm({
           <ul className="space-y-2">
             {lines.map((l, i) => (
               <li key={i} className="flex items-center justify-between gap-2 rounded-lg border border-[#E5E9ED] p-3 text-sm">
-                <span>{l.itemType === "service" ? "Dịch vụ" : "Sản phẩm"}: {l.name} × {l.quantity}</span>
-                <button type="button" onClick={() => setLines((prev) => prev.filter((_, j) => j !== i))} className="min-h-[44px] px-2 text-[#C0392B]">Xóa</button>
+                <span className="min-w-0 flex-1 truncate">{l.itemType === "service" ? "Dịch vụ" : "Sản phẩm"}: {l.name} × {l.quantity}</span>
+                <button type="button" onClick={() => setLines((prev) => prev.filter((_, j) => j !== i))} className="min-h-[44px] shrink-0 px-2 text-[#C0392B]">Xóa</button>
               </li>
             ))}
           </ul>
@@ -433,7 +435,7 @@ function CreateInvoiceForm({
         </div>
         <p className="text-xs text-[#748294]">Tổng tiền sẽ do máy chủ tính sau khi tạo (tạm tính − giảm giá + phụ phí).</p>
         {formError ? <p role="alert" className="text-sm text-[#C0392B]">{formError}</p> : null}
-        <button type="button" onClick={submit} disabled={createMut.isPending} className={btnPrimary}>
+        <button type="button" onClick={submit} disabled={createMut.isPending} className={`${btnPrimary} w-full`}>
           {createMut.isPending ? "Đang xử lý..." : "Tạo hóa đơn"}
         </button>
       </div>

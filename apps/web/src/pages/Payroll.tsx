@@ -89,9 +89,9 @@ export default function PayrollPage() {
           <ErrorBox message={errMsg(meQ.error)} onRetry={() => void meQ.refetch()} />
         ) : (
           <dl className="space-y-2 text-sm">
-            <div className="flex justify-between gap-2"><dt className="text-[#748294]">Kỳ gần nhất</dt><dd>{s(meQ.data, "periodStart", "period_start") ? `${formatDate(s(meQ.data, "periodStart", "period_start"))} – ${formatDate(s(meQ.data, "periodEnd", "period_end"))}` : "Chưa có kỳ lương nào."}</dd></div>
-            <div className="flex justify-between gap-2"><dt className="text-[#748294]">Thực nhận</dt><dd className="font-semibold">{formatVnd(n(meQ.data, "netVnd", "net_vnd", "netSalaryVnd"))}</dd></div>
-            <div className="flex justify-between gap-2"><dt className="text-[#748294]">Trạng thái</dt><dd>{meQ.data && s(meQ.data, "status") ? PAYROLL_PERIOD_STATUS_LABEL[s(meQ.data, "status")] ?? s(meQ.data, "status") : "—"}</dd></div>
+            <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Kỳ gần nhất</dt><dd className="text-right">{s(meQ.data, "periodStart", "period_start") ? `${formatDate(s(meQ.data, "periodStart", "period_start"))} – ${formatDate(s(meQ.data, "periodEnd", "period_end"))}` : "Chưa có kỳ lương nào."}</dd></div>
+            <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Thực nhận</dt><dd className="text-right font-semibold tabular-nums">{formatVnd(n(meQ.data, "netVnd", "net_vnd", "netSalaryVnd"))}</dd></div>
+            <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Trạng thái</dt><dd className="text-right">{meQ.data && s(meQ.data, "status") ? PAYROLL_PERIOD_STATUS_LABEL[s(meQ.data, "status")] ?? s(meQ.data, "status") : "—"}</dd></div>
           </dl>
         )}
       </Card>
@@ -118,7 +118,7 @@ export default function PayrollPage() {
             type="button"
             disabled={createMut.isPending || !periodStart || !periodEnd || periodEnd < periodStart}
             onClick={() => createMut.mutate()}
-            className={btnPrimary}
+            className={`${btnPrimary} w-full`}
           >
             {createMut.isPending ? "Đang xử lý..." : "Tạo kỳ lương"}
           </button>
@@ -138,10 +138,12 @@ export default function PayrollPage() {
               <li key={idOf(p)}>
                 <button type="button" onClick={() => setSelectedId(idOf(p))} className="block w-full rounded-lg border border-[#E5E9ED] p-3 text-left">
                   <span className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-medium">
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium">
                       {formatDate(s(p, "periodStart", "period_start"))} – {formatDate(s(p, "periodEnd", "period_end"))}
                     </span>
-                    <Badge tone={badgeToneForStatus(s(p, "status"))}>{PAYROLL_PERIOD_STATUS_LABEL[s(p, "status")] ?? s(p, "status")}</Badge>
+                    <span className="shrink-0">
+                      <Badge tone={badgeToneForStatus(s(p, "status"))}>{PAYROLL_PERIOD_STATUS_LABEL[s(p, "status")] ?? s(p, "status")}</Badge>
+                    </span>
                   </span>
                 </button>
               </li>
@@ -168,13 +170,13 @@ export default function PayrollPage() {
                     <li key={idOf(pr)} className="rounded-lg border border-[#E5E9ED] p-3 text-sm">
                       <p className="font-medium">{s(pr, "employeeName", "employee_name") || "Nhân viên"}</p>
                       <dl className="mt-2 space-y-1 text-[#203247]">
-                        <div className="flex justify-between"><dt className="text-[#748294]">Lương cơ bản</dt><dd>{formatVnd(n(pr, "baseSalaryVnd", "base_salary_vnd"))}</dd></div>
-                        <div className="flex justify-between"><dt className="text-[#748294]">Hoa hồng</dt><dd>{formatVnd(n(pr, "commissionVnd", "commission_vnd"))}</dd></div>
-                        <div className="flex justify-between"><dt className="text-[#748294]">Thưởng</dt><dd>{formatVnd(n(pr, "bonusVnd", "bonus_vnd"))}</dd></div>
-                        <div className="flex justify-between"><dt className="text-[#748294]">Phụ cấp</dt><dd>{formatVnd(n(pr, "allowanceVnd", "allowance_vnd"))}</dd></div>
-                        <div className="flex justify-between"><dt className="text-[#748294]">Khấu trừ</dt><dd>−{formatVnd(n(pr, "deductionVnd", "deduction_vnd"))}</dd></div>
-                        <div className="flex justify-between"><dt className="text-[#748294]">Tạm ứng</dt><dd>−{formatVnd(n(pr, "advanceVnd", "advance_vnd"))}</dd></div>
-                        <div className="flex justify-between font-semibold text-[#244B70]"><dt>Thực nhận</dt><dd>{formatVnd(n(pr, "netVnd", "net_vnd"))}</dd></div>
+                        <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Lương cơ bản</dt><dd className="text-right tabular-nums">{formatVnd(n(pr, "baseSalaryVnd", "base_salary_vnd"))}</dd></div>
+                        <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Hoa hồng</dt><dd className="text-right tabular-nums">{formatVnd(n(pr, "commissionVnd", "commission_vnd"))}</dd></div>
+                        <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Thưởng</dt><dd className="text-right tabular-nums">{formatVnd(n(pr, "bonusVnd", "bonus_vnd"))}</dd></div>
+                        <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Phụ cấp</dt><dd className="text-right tabular-nums">{formatVnd(n(pr, "allowanceVnd", "allowance_vnd"))}</dd></div>
+                        <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Khấu trừ</dt><dd className="text-right tabular-nums">−{formatVnd(n(pr, "deductionVnd", "deduction_vnd"))}</dd></div>
+                        <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Tạm ứng</dt><dd className="text-right tabular-nums">−{formatVnd(n(pr, "advanceVnd", "advance_vnd"))}</dd></div>
+                        <div className="flex justify-between gap-2 font-semibold text-[#244B70]"><dt className="shrink-0">Thực nhận</dt><dd className="text-right tabular-nums">{formatVnd(n(pr, "netVnd", "net_vnd"))}</dd></div>
                       </dl>
                       {!isPaid ? (
                         <button
@@ -214,20 +216,20 @@ export default function PayrollPage() {
                     </Field>
                   </div>
                   <div className="flex gap-2">
-                    <button type="button" disabled={adjustMut.isPending} onClick={() => adjustMut.mutate()} className={btnPrimary}>Lưu điều chỉnh</button>
-                    <button type="button" onClick={() => setAdjust(null)} className={btnSecondary}>Hủy</button>
+                    <button type="button" disabled={adjustMut.isPending} onClick={() => adjustMut.mutate()} className={`${btnPrimary} flex-1`}>Lưu điều chỉnh</button>
+                    <button type="button" onClick={() => setAdjust(null)} className={`${btnSecondary} flex-1`}>Hủy</button>
                   </div>
                 </div>
               ) : null}
 
               {!isPaid ? (
                 <div className="mt-4 flex flex-wrap gap-2 border-t border-[#E5E9ED] pt-4">
-                  <button type="button" disabled={actionMut.isPending} onClick={() => actionMut.mutate({ action: "calculate" })} className={btnSecondary}>Tính lương</button>
+                  <button type="button" disabled={actionMut.isPending} onClick={() => actionMut.mutate({ action: "calculate" })} className={`${btnSecondary} flex-1`}>Tính lương</button>
                   <button
                     type="button"
                     disabled={actionMut.isPending}
                     onClick={() => { if (window.confirm("Chốt kỳ lương này? Sau khi chốt chỉ còn đánh dấu đã trả.")) actionMut.mutate({ action: "confirm" }); }}
-                    className={btnPrimary}
+                    className={`${btnPrimary} flex-1`}
                   >
                     Chốt kỳ
                   </button>
@@ -235,13 +237,13 @@ export default function PayrollPage() {
                     type="button"
                     disabled={actionMut.isPending || periodStatus !== "confirmed"}
                     onClick={() => { if (window.confirm("Đánh dấu kỳ lương này đã trả?")) actionMut.mutate({ action: "mark-paid" }); }}
-                    className={btnPrimary}
+                    className={`${btnPrimary} flex-1`}
                   >
                     Đánh dấu đã trả
                   </button>
                 </div>
               ) : null}
-              <button type="button" onClick={() => setSelectedId(null)} className={`${btnSecondary} mt-4`}>Đóng chi tiết</button>
+              <button type="button" onClick={() => setSelectedId(null)} className={`${btnSecondary} mt-4 w-full sm:w-auto`}>Đóng chi tiết</button>
             </>
           )}
         </Card>

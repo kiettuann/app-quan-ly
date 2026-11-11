@@ -91,7 +91,7 @@ export default function BranchesPage() {
               </select>
             </Field>
             {formError ? <p role="alert" className="text-sm text-[#C0392B]">{formError}</p> : null}
-            <button type="button" onClick={submit} disabled={saveMut.isPending} className={btnPrimary}>
+            <button type="button" onClick={submit} disabled={saveMut.isPending} className={`${btnPrimary} w-full`}>
               {saveMut.isPending ? "Đang xử lý..." : editing ? "Lưu thay đổi" : "Thêm chi nhánh"}
             </button>
           </div>
@@ -110,10 +110,12 @@ export default function BranchesPage() {
             {branches.map((b) => (
               <li key={idOf(b)} className="rounded-lg border border-[#E5E9ED] p-3">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium">{s(b, "name")}</p>
-                  <Badge tone={badgeToneForStatus(s(b, "status"))}>{s(b, "status") === "active" ? "Đang hoạt động" : "Ngừng hoạt động"}</Badge>
+                  <p className="min-w-0 flex-1 truncate text-sm font-medium">{s(b, "name")}</p>
+                  <span className="shrink-0">
+                    <Badge tone={badgeToneForStatus(s(b, "status"))}>{s(b, "status") === "active" ? "Đang hoạt động" : "Ngừng hoạt động"}</Badge>
+                  </span>
                 </div>
-                <p className="mt-1 text-sm text-[#748294]">
+                <p className="mt-1 break-words text-sm text-[#748294]">
                   {s(b, "address") || "Chưa có địa chỉ"}{s(b, "phone") ? ` · ${s(b, "phone")}` : ""}
                 </p>
                 <div className="mt-2 flex gap-2">

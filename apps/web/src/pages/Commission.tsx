@@ -176,15 +176,15 @@ export default function CommissionPage() {
           <ErrorBox message={errMsg(meQ.error)} onRetry={() => void meQ.refetch()} />
         ) : (
           <dl className="space-y-2 text-sm">
-            <div className="flex justify-between gap-2"><dt className="text-[#748294]">Tổng hoa hồng</dt><dd className="font-semibold">{formatVnd(n(meQ.data, "totalVnd", "total_vnd", "totalCommissionVnd"))}</dd></div>
-            <div className="flex justify-between gap-2"><dt className="text-[#748294]">Chờ duyệt</dt><dd>{formatVnd(n(meQ.data, "pendingVnd", "pending_vnd"))}</dd></div>
-            <div className="flex justify-between gap-2"><dt className="text-[#748294]">Đã duyệt</dt><dd>{formatVnd(n(meQ.data, "confirmedVnd", "confirmed_vnd"))}</dd></div>
+            <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Tổng hoa hồng</dt><dd className="text-right font-semibold tabular-nums">{formatVnd(n(meQ.data, "totalVnd", "total_vnd", "totalCommissionVnd"))}</dd></div>
+            <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Chờ duyệt</dt><dd className="text-right tabular-nums">{formatVnd(n(meQ.data, "pendingVnd", "pending_vnd"))}</dd></div>
+            <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Đã duyệt</dt><dd className="text-right tabular-nums">{formatVnd(n(meQ.data, "confirmedVnd", "confirmed_vnd"))}</dd></div>
             {Array.isArray(meQ.data?.items) && (meQ.data.items as Row[]).length > 0 ? (
               <ul className="space-y-1 pt-2">
                 {(meQ.data.items as Row[]).map((it, i) => (
                   <li key={i} className="flex justify-between gap-2">
-                    <span>{s(it, "ruleName", "rule_name") || "Hoa hồng"}</span>
-                    <span>{formatVnd(n(it, "amountVnd", "amount_vnd"))}</span>
+                    <span className="min-w-0 flex-1 truncate">{s(it, "ruleName", "rule_name") || "Hoa hồng"}</span>
+                    <span className="shrink-0 tabular-nums">{formatVnd(n(it, "amountVnd", "amount_vnd"))}</span>
                   </li>
                 ))}
               </ul>
@@ -220,7 +220,7 @@ export default function CommissionPage() {
                 <input type="number" inputMode="numeric" min={0} value={form.rateValue} onChange={(e) => setForm((f) => ({ ...f, rateValue: e.target.value }))} className={inputCls} />
               </Field>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <Field label="Doanh số tối thiểu">
                 <input type="number" inputMode="numeric" min={0} value={form.minSalesVnd} onChange={(e) => setForm((f) => ({ ...f, minSalesVnd: e.target.value }))} placeholder="0" className={inputCls} />
               </Field>
@@ -247,7 +247,7 @@ export default function CommissionPage() {
               </select>
             </Field>
             {formError ? <p role="alert" className="text-sm text-[#C0392B]">{formError}</p> : null}
-            <button type="button" onClick={submit} disabled={saveMut.isPending || versionMut.isPending} className={btnPrimary}>
+            <button type="button" onClick={submit} disabled={saveMut.isPending || versionMut.isPending} className={`${btnPrimary} w-full`}>
               {versionOf ? "Tạo version mới" : editing ? "Lưu thay đổi" : "Tạo rule"}
             </button>
           </div>
@@ -266,10 +266,12 @@ export default function CommissionPage() {
             {rules.map((r) => (
               <li key={idOf(r)} className="rounded-lg border border-[#E5E9ED] p-3">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium">{s(r, "name")}</p>
-                  <Badge tone={badgeToneForStatus(s(r, "status"))}>{s(r, "status") === "active" ? "Đang áp dụng" : s(r, "status")}</Badge>
+                  <p className="min-w-0 flex-1 truncate text-sm font-medium">{s(r, "name")}</p>
+                  <span className="shrink-0">
+                    <Badge tone={badgeToneForStatus(s(r, "status"))}>{s(r, "status") === "active" ? "Đang áp dụng" : s(r, "status")}</Badge>
+                  </span>
                 </div>
-                <p className="mt-1 text-sm text-[#748294]">
+                <p className="mt-1 break-words text-sm tabular-nums text-[#748294]">
                   {s(r, "rateType", "rate_type") === "fixed"
                     ? `${formatVnd(n(r, "rateValue", "rate_value"))} / dòng`
                     : `${n(r, "rateValue", "rate_value")}%`}
@@ -317,7 +319,7 @@ export default function CommissionPage() {
           <Field label="Số tiền dòng (VND)">
             <input type="number" inputMode="numeric" min={0} value={sim.amountVnd} onChange={(e) => setSim((x) => ({ ...x, amountVnd: e.target.value }))} placeholder="vd: 300000" className={inputCls} />
           </Field>
-          <button type="button" disabled={simMut.isPending || !sim.amountVnd} onClick={() => simMut.mutate()} className={btnPrimary}>
+          <button type="button" disabled={simMut.isPending || !sim.amountVnd} onClick={() => simMut.mutate()} className={`${btnPrimary} w-full`}>
             {simMut.isPending ? "Đang xử lý..." : "Tính thử"}
           </button>
           {simResult ? (
@@ -336,13 +338,13 @@ export default function CommissionPage() {
                   <tbody>
                     {simBreakdown.map((b, i) => (
                       <tr key={i} className="border-t border-[#E5E9ED]">
-                        <td className="py-2">{s(b, "ruleName", "rule_name") || s(b, "ruleId", "rule_id")}</td>
-                        <td className="py-2 text-right">{formatVnd(n(b, "amountVnd", "amount_vnd"))}</td>
+                        <td className="break-words py-2">{s(b, "ruleName", "rule_name") || s(b, "ruleId", "rule_id")}</td>
+                        <td className="whitespace-nowrap py-2 text-right tabular-nums">{formatVnd(n(b, "amountVnd", "amount_vnd"))}</td>
                       </tr>
                     ))}
                     <tr className="border-t border-[#E5E9ED] font-semibold">
                       <td className="py-2">Tổng</td>
-                      <td className="py-2 text-right">{formatVnd(n(simResult, "totalVnd", "total_vnd", "totalCommissionVnd"))}</td>
+                      <td className="whitespace-nowrap py-2 text-right tabular-nums">{formatVnd(n(simResult, "totalVnd", "total_vnd", "totalCommissionVnd"))}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -363,12 +365,12 @@ export default function CommissionPage() {
           <ul className="space-y-2">
             {calcs.map((c) => (
               <li key={idOf(c)} className="flex items-center justify-between gap-2 rounded-lg border border-[#E5E9ED] p-3 text-sm">
-                <span>
+                <span className="min-w-0 flex-1 break-words tabular-nums">
                   {s(c, "employeeName", "employee_name") || "Nhân viên"} · {formatVnd(n(c, "amountVnd", "amount_vnd"))}
                   {" "}<Badge tone={badgeToneForStatus(s(c, "status"))}>{COMMISSION_CALC_STATUS_LABEL[s(c, "status")] ?? s(c, "status")}</Badge>
                 </span>
                 {s(c, "status") === "pending" ? (
-                  <button type="button" disabled={confirmMut.isPending} onClick={() => confirmMut.mutate(idOf(c))} className={btnSecondary}>Duyệt</button>
+                  <button type="button" disabled={confirmMut.isPending} onClick={() => confirmMut.mutate(idOf(c))} className={`${btnSecondary} shrink-0`}>Duyệt</button>
                 ) : null}
               </li>
             ))}

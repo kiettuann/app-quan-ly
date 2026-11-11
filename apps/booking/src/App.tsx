@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { phoneVn } from "@quanly/shared";
 import { useMemo, useState } from "react";
-import { CalendarDays, Clock, MapPin, Phone, Search, User } from "lucide-react";
+import { CalendarDays, Check, Clock, MapPin, Phone, Search, User } from "lucide-react";
 import { EmptyBox, ErrorBox, FieldError, LoadingBox, PrimaryButton, SecondaryButton, StepHeader, SummaryRow } from "./components/ui.js";
 import {
   cancelMyBooking,
@@ -27,7 +27,8 @@ function readTenantParam(): string {
   }
 }
 
-const inputCls = "mt-1 h-11 w-full rounded-lg border border-[#E5E9ED] bg-white px-3 text-sm";
+const inputCls =
+  "mt-1 h-11 w-full rounded-lg border border-[#E5E9ED] bg-white px-3 text-sm outline-none transition-colors placeholder:text-[#748294] focus:border-[#3979A8] focus:ring-2 focus:ring-[#3979A8]/25 disabled:cursor-not-allowed disabled:bg-[#F7F7F5]";
 const labelCls = "text-sm font-medium";
 
 export default function App() {
@@ -41,14 +42,14 @@ export default function App() {
           <button
             type="button"
             onClick={() => setMode("booking")}
-            className={`h-11 flex-1 rounded-lg text-sm font-semibold ${mode === "booking" ? "bg-[#244B70] text-white" : "bg-white text-[#244B70] ring-1 ring-[#E5E9ED]"}`}
+            className={`h-11 flex-1 rounded-lg text-sm font-semibold transition-colors ${mode === "booking" ? "bg-[#244B70] text-white" : "bg-white text-[#244B70] ring-1 ring-[#E5E9ED] hover:bg-[#F7F7F5]"}`}
           >
             Đặt lịch mới
           </button>
           <button
             type="button"
             onClick={() => setMode("lookup")}
-            className={`h-11 flex-1 rounded-lg text-sm font-semibold ${mode === "lookup" ? "bg-[#244B70] text-white" : "bg-white text-[#244B70] ring-1 ring-[#E5E9ED]"}`}
+            className={`h-11 flex-1 rounded-lg text-sm font-semibold transition-colors ${mode === "lookup" ? "bg-[#244B70] text-white" : "bg-white text-[#244B70] ring-1 ring-[#E5E9ED] hover:bg-[#F7F7F5]"}`}
           >
             Tra cứu lịch của tôi
           </button>
@@ -273,7 +274,7 @@ function BookingFlow() {
                     resetFromBranch();
                     setStep(3);
                   }}
-                  className="w-full rounded-lg border border-[#E5E9ED] bg-white p-4 text-left"
+                  className="w-full rounded-lg border border-[#E5E9ED] bg-white p-4 text-left transition-colors hover:bg-[#F7F7F5] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3979A8]"
                 >
                   <p className="text-sm font-semibold">{b.name}</p>
                   <p className="mt-1 flex items-start gap-2 text-sm text-[#748294]">
@@ -316,15 +317,18 @@ function BookingFlow() {
                     onClick={() =>
                       setSelectedServiceIds((prev) => (selected ? prev.filter((id) => id !== s.id) : [...prev, s.id]))
                     }
-                    className={`w-full rounded-lg border bg-white p-4 text-left ${selected ? "border-[#244B70] ring-1 ring-[#244B70]" : "border-[#E5E9ED]"}`}
+                    className={`w-full rounded-lg border bg-white p-4 text-left transition-colors ${selected ? "border-[#244B70] bg-[#F2F6F9] ring-1 ring-[#244B70]" : "border-[#E5E9ED] hover:bg-[#F7F7F5]"}`}
                   >
                     <span className="flex items-start justify-between gap-3">
-                      <span>
-                        <span className="block text-sm font-semibold">{s.name}</span>
+                      <span className="min-w-0">
+                        <span className="flex items-center gap-1.5 text-sm font-semibold">
+                          {selected && <Check className="h-4 w-4 shrink-0 text-[#244B70]" aria-hidden />}
+                          <span className="break-words">{s.name}</span>
+                        </span>
                         {s.categoryName && <span className="mt-0.5 block text-xs text-[#748294]">{s.categoryName}</span>}
                         <span className="mt-0.5 block text-xs text-[#748294]">{s.durationMinutes > 0 ? `${s.durationMinutes} phút` : "Thời lượng do tiệm xác nhận"}</span>
                       </span>
-                      <span className="shrink-0 text-sm font-semibold text-[#244B70]">{formatVnd(s.priceVnd)}</span>
+                      <span className="shrink-0 text-sm font-semibold tabular-nums text-[#244B70]">{formatVnd(s.priceVnd)}</span>
                     </span>
                   </button>
                 </li>
@@ -364,9 +368,12 @@ function BookingFlow() {
                 type="button"
                 aria-pressed={technicianChoice === "auto"}
                 onClick={() => setTechnicianChoice("auto")}
-                className={`w-full rounded-lg border bg-white p-4 text-left ${technicianChoice === "auto" ? "border-[#244B70] ring-1 ring-[#244B70]" : "border-[#E5E9ED]"}`}
+                className={`w-full rounded-lg border bg-white p-4 text-left transition-colors ${technicianChoice === "auto" ? "border-[#244B70] bg-[#F2F6F9] ring-1 ring-[#244B70]" : "border-[#E5E9ED] hover:bg-[#F7F7F5]"}`}
               >
-                <span className="block text-sm font-semibold">Hệ thống tự chọn</span>
+                <span className="flex items-center gap-1.5 text-sm font-semibold">
+                  {technicianChoice === "auto" && <Check className="h-4 w-4 shrink-0 text-[#244B70]" aria-hidden />}
+                  Hệ thống tự chọn
+                </span>
                 <span className="mt-0.5 block text-xs text-[#748294]">Tiệm sắp xếp kỹ thuật viên đang trống</span>
               </button>
             </li>
@@ -376,10 +383,15 @@ function BookingFlow() {
                   type="button"
                   aria-pressed={technicianChoice === t.id}
                   onClick={() => setTechnicianChoice(t.id)}
-                  className={`w-full rounded-lg border bg-white p-4 text-left ${technicianChoice === t.id ? "border-[#244B70] ring-1 ring-[#244B70]" : "border-[#E5E9ED]"}`}
+                  className={`w-full rounded-lg border bg-white p-4 text-left transition-colors ${technicianChoice === t.id ? "border-[#244B70] bg-[#F2F6F9] ring-1 ring-[#244B70]" : "border-[#E5E9ED] hover:bg-[#F7F7F5]"}`}
                 >
                   <span className="flex items-center gap-2 text-sm font-semibold">
-                    <User className="h-4 w-4 text-[#748294]" /> {t.name}
+                    {technicianChoice === t.id ? (
+                      <Check className="h-4 w-4 shrink-0 text-[#244B70]" aria-hidden />
+                    ) : (
+                      <User className="h-4 w-4 shrink-0 text-[#748294]" />
+                    )}
+                    <span className="break-words">{t.name}</span>
                   </span>
                 </button>
               </li>
@@ -438,14 +450,14 @@ function BookingFlow() {
           {slotsQuery.data && slotsQuery.data.slots.length === 0 && (
             <EmptyBox message="Ngày này đã hết giờ trống. Vui lòng chọn ngày khác." action={<SecondaryButton onClick={() => setStep(5)}>Chọn ngày khác</SecondaryButton>} />
           )}
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
             {(slotsQuery.data?.slots ?? []).map((slot) => (
               <button
                 key={slot}
                 type="button"
                 aria-pressed={time === slot}
                 onClick={() => setTime(slot)}
-                className={`h-11 rounded-lg text-sm font-semibold ${time === slot ? "bg-[#244B70] text-white" : "bg-white text-[#203247] ring-1 ring-[#E5E9ED]"}`}
+                className={`h-11 rounded-lg text-sm font-semibold tabular-nums transition-colors ${time === slot ? "bg-[#244B70] text-white ring-2 ring-[#3979A8] ring-offset-2 ring-offset-[#F7F7F5]" : "bg-white text-[#203247] ring-1 ring-[#E5E9ED] hover:bg-[#F7F7F5]"}`}
               >
                 {slot}
               </button>
@@ -688,7 +700,7 @@ function MyBookingsView() {
                           cancelMutation.mutate({ id: b.id, phone: submitted.phone });
                         }
                       }}
-                      className="mt-3 h-11 w-full rounded-lg bg-white text-sm font-semibold text-[#C0392B] ring-1 ring-[#E5E9ED] disabled:opacity-50"
+                      className="mt-3 h-11 w-full rounded-lg bg-white text-sm font-semibold text-[#C0392B] ring-1 ring-[#E5E9ED] transition-colors hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3979A8] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {cancelMutation.isPending ? "Đang xử lý..." : "Hủy lịch hẹn này"}
                     </button>

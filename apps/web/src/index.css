@@ -2,8 +2,55 @@
 @tailwind components;
 @tailwind utilities;
 
+/* DESIGN_SYSTEM.md §2–§3: nền #F7F7F5, chữ #203247, Be Vietnam Pro ưu tiên. */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   background-color: #f7f7f5;
   color: #203247;
   font-family: "Be Vietnam Pro", Inter, system-ui, sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Số tiền VND: tabular numbers, không nhảy cột — DESIGN_SYSTEM.md §3. */
+.num,
+td[data-num],
+[data-num] {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Focus rõ ràng nhưng nhẹ: vòng xanh Blue, không viền đậm gây chói. */
+:focus-visible {
+  outline: 2px solid #3979a8;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Chuyển trạng thái tối thiểu, không animation toàn cục. */
+button,
+a,
+input,
+select,
+textarea {
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+::selection {
+  background-color: #d3e0eb;
+  color: #203247;
+}
+
+/* Placeholder luôn nhạt hơn chữ nhập, không thay nhãn. */
+input::placeholder,
+textarea::placeholder {
+  color: #748294;
+  opacity: 1;
 }

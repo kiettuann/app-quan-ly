@@ -114,8 +114,8 @@ export default function ServicesPage() {
 
       <Card title="Nhóm dịch vụ">
         <div className="flex gap-2">
-          <input value={catName} onChange={(e) => setCatName(e.target.value)} placeholder="Tên nhóm mới, vd: Làm móng" aria-label="Tên nhóm dịch vụ mới" className={inputCls} />
-          <button type="button" disabled={catMut.isPending || !catName.trim()} onClick={() => catMut.mutate(catName.trim())} className={btnSecondary}>
+          <input value={catName} onChange={(e) => setCatName(e.target.value)} placeholder="Tên nhóm mới, vd: Làm móng" aria-label="Tên nhóm dịch vụ mới" className={`${inputCls} min-w-0 flex-1`} />
+          <button type="button" disabled={catMut.isPending || !catName.trim()} onClick={() => catMut.mutate(catName.trim())} className={`${btnSecondary} shrink-0`}>
             Thêm nhóm
           </button>
         </div>
@@ -154,7 +154,7 @@ export default function ServicesPage() {
               </select>
             </Field>
             {formError ? <p role="alert" className="text-sm text-[#C0392B]">{formError}</p> : null}
-            <button type="button" onClick={submit} disabled={saveMut.isPending} className={btnPrimary}>
+            <button type="button" onClick={submit} disabled={saveMut.isPending} className={`${btnPrimary} w-full`}>
               {saveMut.isPending ? "Đang xử lý..." : editing ? "Lưu thay đổi" : "Thêm dịch vụ"}
             </button>
           </div>
@@ -173,10 +173,12 @@ export default function ServicesPage() {
             {services.map((sv) => (
               <li key={idOf(sv)} className="rounded-lg border border-[#E5E9ED] p-3">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium">{s(sv, "name")}</p>
-                  <Badge tone={badgeToneForStatus(s(sv, "status"))}>{s(sv, "status") === "active" ? "Đang bán" : "Ngừng bán"}</Badge>
+                  <p className="min-w-0 flex-1 truncate text-sm font-medium">{s(sv, "name")}</p>
+                  <span className="shrink-0">
+                    <Badge tone={badgeToneForStatus(s(sv, "status"))}>{s(sv, "status") === "active" ? "Đang bán" : "Ngừng bán"}</Badge>
+                  </span>
                 </div>
-                <p className="mt-1 text-sm text-[#748294]">
+                <p className="mt-1 break-words text-sm tabular-nums text-[#748294]">
                   {formatVnd(n(sv, "priceVnd", "price_vnd"))} · {n(sv, "durationMinutes", "duration_minutes")} phút
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
@@ -221,10 +223,10 @@ export default function ServicesPage() {
               Có bán tại chi nhánh này
             </label>
             <div className="flex gap-2">
-              <button type="button" disabled={overrideMut.isPending || !override.branchId} onClick={() => overrideMut.mutate()} className={btnPrimary}>
+              <button type="button" disabled={overrideMut.isPending || !override.branchId} onClick={() => overrideMut.mutate()} className={`${btnPrimary} flex-1`}>
                 {overrideMut.isPending ? "Đang xử lý..." : "Lưu giá"}
               </button>
-              <button type="button" onClick={() => setOverride(null)} className={btnSecondary}>Đóng</button>
+              <button type="button" onClick={() => setOverride(null)} className={`${btnSecondary} flex-1`}>Đóng</button>
             </div>
           </div>
         </Card>

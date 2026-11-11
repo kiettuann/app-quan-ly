@@ -61,7 +61,7 @@ export default function AuditLogsPage() {
         <div className="overflow-x-auto rounded-lg border border-[#E5E9ED] bg-white">
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead>
-              <tr className="border-b border-[#E5E9ED] text-[#748294]">
+              <tr className="border-b border-[#E5E9ED] bg-[#F7F7F5] text-[#748294]">
                 <th className="px-4 py-3 font-semibold">Thời gian</th>
                 <th className="px-4 py-3 font-semibold">Hành động</th>
                 <th className="px-4 py-3 font-semibold">Đối tượng</th>
@@ -76,10 +76,10 @@ export default function AuditLogsPage() {
                   <td className="px-4 py-3 font-medium">{l.action}</td>
                   <td className="px-4 py-3">
                     {l.entityType ?? "—"}
-                    {l.entityId && <span className="block text-xs text-[#748294]">{l.entityId}</span>}
+                    {l.entityId && <span className="block break-all text-xs text-[#748294]">{l.entityId}</span>}
                   </td>
-                  <td className="px-4 py-3 text-[#748294]">{l.tenantId ?? "—"}</td>
-                  <td className="px-4 py-3 text-[#748294]">{l.userId ?? "—"}</td>
+                  <td className="break-all px-4 py-3 text-[#748294]">{l.tenantId ?? "—"}</td>
+                  <td className="break-all px-4 py-3 text-[#748294]">{l.userId ?? "—"}</td>
                 </tr>
               ))}
             </tbody>

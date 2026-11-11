@@ -50,10 +50,11 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="p-4">
+    <main className="mx-auto w-full max-w-md p-4">
       <h1 className="text-xl font-bold text-[#244B70]">Đăng ký tiệm mới</h1>
       <p className="mt-1 text-sm text-[#748294]">Tạo tài khoản quản lý cho tiệm nail của bạn.</p>
-      <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
+      <div className="mt-6 rounded-lg border border-[#E5E9ED] bg-white p-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <label htmlFor="tenantName" className="text-sm font-medium">Tên tiệm</label>
           <input id="tenantName" placeholder="vd: Nail Lumi" {...register("tenantName")} className="mt-1 h-11 w-full rounded-lg border border-[#E5E9ED] bg-white px-3 text-sm" />
@@ -91,9 +92,10 @@ export default function RegisterPage() {
           {loading ? "Đang xử lý..." : "Tạo tài khoản"}
         </button>
       </form>
+    </div>
       <p className="mt-4 text-sm text-[#748294]">
         Đã có tài khoản?{" "}
-        <Link to="/dang-nhap" className="font-semibold text-[#3979A8]">Đăng nhập</Link>
+        <Link to="/dang-nhap" className="inline-flex min-h-[44px] items-center font-semibold text-[#3979A8]">Đăng nhập</Link>
       </p>
     </main>
   );

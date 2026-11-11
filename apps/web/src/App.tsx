@@ -43,7 +43,10 @@ function Shell() {
     location.pathname,
   );
   return (
-    <div className="mx-auto min-h-screen max-w-3xl bg-[#F7F7F5] pb-20">
+    // Container mobile-first, max-w-3xl: các trang đã tự có p-4 nên container
+    // không thêm padding ngang (tránh padding kép). Padding dưới chừa chỗ cho
+    // BottomNav + safe-area trên điện thoại có tai thỏ.
+    <div className="mx-auto min-h-screen max-w-3xl bg-[#F7F7F5] pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
       <Routes>
         <Route path="/dang-nhap" element={<LoginPage />} />
         <Route path="/quen-mat-khau" element={<ForgotPasswordPage />} />

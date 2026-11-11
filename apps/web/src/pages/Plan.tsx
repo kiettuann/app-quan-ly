@@ -33,11 +33,11 @@ export default function PlanPage() {
       ) : plan ? (
         <Card title={`Gói hiện tại: ${s(plan, "name")}`}>
           <dl className="space-y-2 text-sm">
-            <div className="flex justify-between gap-2"><dt className="text-[#748294]">Giá</dt><dd className="font-semibold">{formatVnd(n(plan, "priceVnd", "price_vnd"))} / tháng</dd></div>
-            {maxBranches > 0 ? <div className="flex justify-between gap-2"><dt className="text-[#748294]">Số chi nhánh tối đa</dt><dd>{maxBranches}</dd></div> : null}
-            {maxUsers > 0 ? <div className="flex justify-between gap-2"><dt className="text-[#748294]">Số người dùng tối đa</dt><dd>{maxUsers}</dd></div> : null}
-            {maxBookings > 0 ? <div className="flex justify-between gap-2"><dt className="text-[#748294]">Lịch hẹn / tháng tối đa</dt><dd>{maxBookings}</dd></div> : null}
-            <div className="flex justify-between gap-2"><dt className="text-[#748294]">Trạng thái đăng ký</dt><dd>{s(tenant, "subscriptionStatus", "subscription_status") || s(plan, "status") || "Đang hoạt động"}</dd></div>
+            <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Giá</dt><dd className="text-right font-semibold tabular-nums">{formatVnd(n(plan, "priceVnd", "price_vnd"))} / tháng</dd></div>
+            {maxBranches > 0 ? <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Số chi nhánh tối đa</dt><dd className="text-right tabular-nums">{maxBranches}</dd></div> : null}
+            {maxUsers > 0 ? <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Số người dùng tối đa</dt><dd className="text-right tabular-nums">{maxUsers}</dd></div> : null}
+            {maxBookings > 0 ? <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Lịch hẹn / tháng tối đa</dt><dd className="text-right tabular-nums">{maxBookings}</dd></div> : null}
+            <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Trạng thái đăng ký</dt><dd className="min-w-0 break-words text-right">{s(tenant, "subscriptionStatus", "subscription_status") || s(plan, "status") || "Đang hoạt động"}</dd></div>
           </dl>
           {features.length > 0 ? (
             <>
@@ -54,15 +54,15 @@ export default function PlanPage() {
         <Card title="Gói hiện tại">
           <Empty text="Chưa có thông tin gói dịch vụ." />
           <dl className="mt-3 space-y-2 text-sm">
-            <div className="flex justify-between gap-2"><dt className="text-[#748294]">Tên gói</dt><dd>{s(tenant, "planName", "plan_name") || "—"}</dd></div>
-            <div className="flex justify-between gap-2"><dt className="text-[#748294]">Trạng thái đăng ký</dt><dd>{s(tenant, "subscriptionStatus", "subscription_status") || "—"}</dd></div>
+            <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Tên gói</dt><dd className="min-w-0 break-words text-right">{s(tenant, "planName", "plan_name") || "—"}</dd></div>
+            <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Trạng thái đăng ký</dt><dd className="min-w-0 break-words text-right">{s(tenant, "subscriptionStatus", "subscription_status") || "—"}</dd></div>
           </dl>
         </Card>
       )}
       <button
         type="button"
         onClick={() => setNotice("Nâng cấp gói dịch vụ sắp ra mắt.")}
-        className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#244B70] px-4 text-sm font-semibold text-white"
+        className="inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-[#244B70] px-4 text-sm font-semibold text-white"
       >
         Nâng cấp gói
       </button>

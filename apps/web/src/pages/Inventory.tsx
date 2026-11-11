@@ -160,8 +160,8 @@ export default function InventoryPage() {
           <ul className="space-y-2">
             {lowStock.map((p) => (
               <li key={idOf(p)} className="flex justify-between gap-2 text-sm">
-                <span>{s(p, "name")}</span>
-                <Badge tone="amber">Còn {n(p, "stockQuantity", "stock_quantity")} {s(p, "unit") || ""}</Badge>
+                <span className="min-w-0 flex-1 truncate">{s(p, "name")}</span>
+                <span className="shrink-0"><Badge tone="amber">Còn {n(p, "stockQuantity", "stock_quantity")} {s(p, "unit") || ""}</Badge></span>
               </li>
             ))}
           </ul>
@@ -170,8 +170,8 @@ export default function InventoryPage() {
 
       <Card title="Nhóm sản phẩm">
         <div className="flex gap-2">
-          <input value={catName} onChange={(e) => setCatName(e.target.value)} placeholder="Tên nhóm mới" aria-label="Tên nhóm sản phẩm mới" className={inputCls} />
-          <button type="button" disabled={catMut.isPending || !catName.trim()} onClick={() => catMut.mutate(catName.trim())} className={btnSecondary}>Thêm nhóm</button>
+          <input value={catName} onChange={(e) => setCatName(e.target.value)} placeholder="Tên nhóm mới" aria-label="Tên nhóm sản phẩm mới" className={`${inputCls} min-w-0 flex-1`} />
+          <button type="button" disabled={catMut.isPending || !catName.trim()} onClick={() => catMut.mutate(catName.trim())} className={`${btnSecondary} shrink-0`}>Thêm nhóm</button>
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
           <button type="button" onClick={() => setCategoryId("")} className={categoryId === "" ? btnPrimary : btnSecondary}>Tất cả</button>
@@ -218,7 +218,7 @@ export default function InventoryPage() {
               </select>
             </Field>
             {formError ? <p role="alert" className="text-sm text-[#C0392B]">{formError}</p> : null}
-            <button type="button" onClick={submit} disabled={saveMut.isPending} className={btnPrimary}>
+            <button type="button" onClick={submit} disabled={saveMut.isPending} className={`${btnPrimary} w-full`}>
               {saveMut.isPending ? "Đang xử lý..." : editing ? "Lưu thay đổi" : "Thêm sản phẩm"}
             </button>
           </div>
@@ -239,10 +239,10 @@ export default function InventoryPage() {
               return (
                 <li key={idOf(p)} className="rounded-lg border border-[#E5E9ED] p-3">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-medium">{s(p, "name")}</p>
-                    {low ? <Badge tone="amber">Sắp hết</Badge> : null}
+                    <p className="min-w-0 flex-1 truncate text-sm font-medium">{s(p, "name")}</p>
+                    {low ? <span className="shrink-0"><Badge tone="amber">Sắp hết</Badge></span> : null}
                   </div>
-                  <p className="mt-1 text-sm text-[#748294]">
+                  <p className="mt-1 break-words text-sm tabular-nums text-[#748294]">
                     SKU: {s(p, "sku")} · Giá bán: {formatVnd(n(p, "sellPriceVnd", "sell_price_vnd"))} · Tồn: {n(p, "stockQuantity", "stock_quantity")} {s(p, "unit")}
                   </p>
                   <button type="button" onClick={() => startEdit(p)} className={`${btnSecondary} mt-2`}>Sửa</button>
@@ -280,7 +280,7 @@ export default function InventoryPage() {
             type="button"
             disabled={moveMut.isPending || !move.productId || !move.quantity}
             onClick={() => moveMut.mutate()}
-            className={btnPrimary}
+            className={`${btnPrimary} w-full`}
           >
             {moveMut.isPending ? "Đang xử lý..." : "Ghi nhận"}
           </button>
@@ -289,10 +289,10 @@ export default function InventoryPage() {
 
       <Card title="Đơn đặt hàng">
         <div className="space-y-4">
-          <div className="flex gap-2">
-            <input value={supplierName} onChange={(e) => setSupplierName(e.target.value)} placeholder="Tên nhà cung cấp mới" aria-label="Tên nhà cung cấp mới" className={inputCls} />
-            <input value={supplierPhone} onChange={(e) => setSupplierPhone(e.target.value)} placeholder="SĐT" aria-label="SĐT nhà cung cấp" className={inputCls} />
-            <button type="button" disabled={supplierMut.isPending || !supplierName.trim()} onClick={() => supplierMut.mutate()} className={btnSecondary}>Thêm NCC</button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input value={supplierName} onChange={(e) => setSupplierName(e.target.value)} placeholder="Tên nhà cung cấp mới" aria-label="Tên nhà cung cấp mới" className={`${inputCls} min-w-0 flex-1`} />
+            <input value={supplierPhone} onChange={(e) => setSupplierPhone(e.target.value)} placeholder="SĐT" aria-label="SĐT nhà cung cấp" className={`${inputCls} min-w-0 flex-1`} />
+            <button type="button" disabled={supplierMut.isPending || !supplierName.trim()} onClick={() => supplierMut.mutate()} className={`${btnSecondary} shrink-0`}>Thêm NCC</button>
           </div>
           <Field label="Nhà cung cấp">
             <select value={po.supplierId} onChange={(e) => setPo((p) => ({ ...p, supplierId: e.target.value }))} className={inputCls}>
@@ -322,7 +322,7 @@ export default function InventoryPage() {
             type="button"
             disabled={poMut.isPending || !po.supplierId || !po.productId || !po.quantity || !po.unitCostVnd}
             onClick={() => poMut.mutate()}
-            className={btnPrimary}
+            className={`${btnPrimary} w-full`}
           >
             {poMut.isPending ? "Đang xử lý..." : "Tạo đơn đặt hàng"}
           </button>
@@ -336,12 +336,12 @@ export default function InventoryPage() {
             <ul className="space-y-2">
               {(posQ.data ?? []).map((o) => (
                 <li key={idOf(o)} className="flex items-center justify-between gap-2 rounded-lg border border-[#E5E9ED] p-3 text-sm">
-                  <span>
+                  <span className="min-w-0 flex-1 break-words tabular-nums">
                     {s(o, "supplierName", "supplier_name") || "Đơn đặt hàng"} · {formatVnd(n(o, "totalCostVnd", "total_cost_vnd"))}
                     {" "}<Badge tone={badgeToneForStatus(s(o, "status"))}>{PO_STATUS_LABEL[s(o, "status")] ?? s(o, "status")}</Badge>
                   </span>
                   {s(o, "status") !== "received" && s(o, "status") !== "cancelled" ? (
-                    <button type="button" disabled={receiveMut.isPending} onClick={() => receiveMut.mutate(idOf(o))} className={btnSecondary}>Nhận hàng</button>
+                    <button type="button" disabled={receiveMut.isPending} onClick={() => receiveMut.mutate(idOf(o))} className={`${btnSecondary} shrink-0`}>Nhận hàng</button>
                   ) : null}
                 </li>
               ))}

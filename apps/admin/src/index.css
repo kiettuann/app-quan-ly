@@ -2,8 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+/* DESIGN_SYSTEM.md §2–§3: nền #F7F7F5, chữ #203247, Be Vietnam Pro ưu tiên. */
 body {
   background-color: #f7f7f5;
   color: #203247;
   font-family: "Be Vietnam Pro", Inter, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer base {
+  ::placeholder {
+    color: #748294;
+    opacity: 1;
+  }
+  :focus-visible {
+    outline: 2px solid #3979a8;
+    outline-offset: 2px;
+  }
+  button {
+    -webkit-tap-highlight-color: transparent;
+  }
 }

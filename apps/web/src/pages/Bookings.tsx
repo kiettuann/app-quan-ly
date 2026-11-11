@@ -86,7 +86,7 @@ export default function BookingsPage() {
     <main className="space-y-4 p-4">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-xl font-bold">Lịch hẹn</h1>
-        <button type="button" onClick={() => setShowCreate((v) => !v)} className={btnPrimary}>
+        <button type="button" onClick={() => setShowCreate((v) => !v)} className={`${btnPrimary} shrink-0`}>
           {showCreate ? "Đóng form" : "Tạo lịch hẹn"}
         </button>
       </div>
@@ -104,8 +104,8 @@ export default function BookingsPage() {
       ) : null}
 
       <div className="flex gap-2">
-        <button type="button" onClick={() => setView("list")} className={view === "list" ? btnPrimary : btnSecondary}>Danh sách</button>
-        <button type="button" onClick={() => setView("calendar")} className={view === "calendar" ? btnPrimary : btnSecondary}>Lịch ngày</button>
+        <button type="button" onClick={() => setView("list")} className={`${view === "list" ? btnPrimary : btnSecondary} flex-1 sm:flex-none`}>Danh sách</button>
+        <button type="button" onClick={() => setView("calendar")} className={`${view === "calendar" ? btnPrimary : btnSecondary} flex-1 sm:flex-none`}>Lịch ngày</button>
       </div>
 
       <Card>
@@ -153,8 +153,12 @@ export default function BookingsPage() {
                     <p className="text-xs font-semibold text-[#748294]">{h}:00</p>
                     {items.map((bk) => (
                       <button key={idOf(bk)} type="button" onClick={() => setSelectedId(idOf(bk))} className="mt-1 block w-full rounded-lg border border-[#E5E9ED] bg-white p-3 text-left">
-                        <span className="text-sm font-medium">{s(bk, "customerName", "customer_name") || "Khách hàng"}</span>{" "}
-                        <Badge tone={badgeToneForStatus(s(bk, "status"))}>{BOOKING_STATUS_LABEL[s(bk, "status")] ?? s(bk, "status")}</Badge>
+                        <span className="flex items-center justify-between gap-2">
+                          <span className="min-w-0 flex-1 truncate text-sm font-medium">{s(bk, "customerName", "customer_name") || "Khách hàng"}</span>
+                          <span className="shrink-0">
+                            <Badge tone={badgeToneForStatus(s(bk, "status"))}>{BOOKING_STATUS_LABEL[s(bk, "status")] ?? s(bk, "status")}</Badge>
+                          </span>
+                        </span>
                         <span className="block text-xs text-[#748294]">{formatDateTime(s(bk, "startAt", "start_at"))}</span>
                       </button>
                     ))}
@@ -176,8 +180,10 @@ export default function BookingsPage() {
               <li key={idOf(bk)}>
                 <button type="button" onClick={() => setSelectedId(idOf(bk))} className="block w-full rounded-lg border border-[#E5E9ED] p-3 text-left">
                   <span className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-medium">{s(bk, "customerName", "customer_name") || "Khách hàng"}</span>
-                    <Badge tone={badgeToneForStatus(s(bk, "status"))}>{BOOKING_STATUS_LABEL[s(bk, "status")] ?? s(bk, "status")}</Badge>
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium">{s(bk, "customerName", "customer_name") || "Khách hàng"}</span>
+                    <span className="shrink-0">
+                      <Badge tone={badgeToneForStatus(s(bk, "status"))}>{BOOKING_STATUS_LABEL[s(bk, "status")] ?? s(bk, "status")}</Badge>
+                    </span>
                   </span>
                   <span className="mt-1 block text-xs text-[#748294]">
                     {formatDateTime(s(bk, "startAt", "start_at"))}
@@ -197,14 +203,14 @@ export default function BookingsPage() {
           ) : (
             <>
               <dl className="space-y-2 text-sm">
-                <div className="flex justify-between gap-2"><dt className="text-[#748294]">Khách hàng</dt><dd className="font-medium">{s(selected, "customerName", "customer_name") || "—"}</dd></div>
-                <div className="flex justify-between gap-2"><dt className="text-[#748294]">SĐT</dt><dd>{s(selected, "customerPhone", "customer_phone") || "—"}</dd></div>
-                <div className="flex justify-between gap-2"><dt className="text-[#748294]">Bắt đầu</dt><dd>{formatDateTime(s(selected, "startAt", "start_at"))}</dd></div>
-                <div className="flex justify-between gap-2"><dt className="text-[#748294]">Kết thúc</dt><dd>{formatDateTime(s(selected, "endAt", "end_at"))}</dd></div>
-                <div className="flex justify-between gap-2"><dt className="text-[#748294]">Kỹ thuật viên</dt><dd>{s(selected, "technicianName", "technician_name") || "Hệ thống tự chọn"}</dd></div>
-                <div className="flex justify-between gap-2"><dt className="text-[#748294]">Trạng thái</dt><dd><Badge tone={badgeToneForStatus(currentStatus)}>{BOOKING_STATUS_LABEL[currentStatus] ?? currentStatus}</Badge></dd></div>
+                <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Khách hàng</dt><dd className="min-w-0 break-words text-right font-medium">{s(selected, "customerName", "customer_name") || "—"}</dd></div>
+                <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">SĐT</dt><dd className="text-right">{s(selected, "customerPhone", "customer_phone") || "—"}</dd></div>
+                <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Bắt đầu</dt><dd className="text-right">{formatDateTime(s(selected, "startAt", "start_at"))}</dd></div>
+                <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Kết thúc</dt><dd className="text-right">{formatDateTime(s(selected, "endAt", "end_at"))}</dd></div>
+                <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Kỹ thuật viên</dt><dd className="min-w-0 break-words text-right">{s(selected, "technicianName", "technician_name") || "Hệ thống tự chọn"}</dd></div>
+                <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Trạng thái</dt><dd className="shrink-0"><Badge tone={badgeToneForStatus(currentStatus)}>{BOOKING_STATUS_LABEL[currentStatus] ?? currentStatus}</Badge></dd></div>
                 {s(selected, "notes") ? (
-                  <div className="flex justify-between gap-2"><dt className="text-[#748294]">Ghi chú</dt><dd>{s(selected, "notes")}</dd></div>
+                  <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Ghi chú</dt><dd className="min-w-0 break-words text-right">{s(selected, "notes")}</dd></div>
                 ) : null}
               </dl>
               <div className="mt-3">
@@ -215,8 +221,8 @@ export default function BookingsPage() {
                   <ul className="mt-1 space-y-1 text-sm">
                     {arr(selected, "items", "services").map((it, i) => (
                       <li key={i} className="flex justify-between gap-2">
-                        <span>{s(it, "serviceName", "name")}</span>
-                        <span>{n(it, "priceVnd", "price_vnd") > 0 ? formatVnd(n(it, "priceVnd", "price_vnd")) : ""}</span>
+                        <span className="min-w-0 flex-1 truncate">{s(it, "serviceName", "name")}</span>
+                        <span className="shrink-0 tabular-nums">{n(it, "priceVnd", "price_vnd") > 0 ? formatVnd(n(it, "priceVnd", "price_vnd")) : ""}</span>
                       </li>
                     ))}
                   </ul>
@@ -361,7 +367,7 @@ function CreateBookingForm({
                       }
                     />
                     <span className="flex-1">{s(sv, "name")}</span>
-                    <span className="text-[#748294]">{formatVnd(n(sv, "priceVnd", "price_vnd"))} · {n(sv, "durationMinutes", "duration_minutes")} phút</span>
+                    <span className="shrink-0 whitespace-nowrap tabular-nums text-[#748294]">{formatVnd(n(sv, "priceVnd", "price_vnd"))} · {n(sv, "durationMinutes", "duration_minutes")} phút</span>
                   </label>
                 </li>
               ))}
@@ -388,7 +394,7 @@ function CreateBookingForm({
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="mt-1 w-full rounded-lg border border-[#E5E9ED] bg-white px-3 py-2 text-sm" />
         </Field>
         {formError ? <p role="alert" className="text-sm text-[#C0392B]">{formError}</p> : null}
-        <button type="button" onClick={submit} disabled={createMut.isPending} className={btnPrimary}>
+        <button type="button" onClick={submit} disabled={createMut.isPending} className={`${btnPrimary} w-full`}>
           {createMut.isPending ? "Đang xử lý..." : "Xác nhận tạo lịch hẹn"}
         </button>
       </div>

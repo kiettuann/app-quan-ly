@@ -73,7 +73,7 @@ export default function PlansPage() {
         <div className="overflow-x-auto rounded-lg border border-[#E5E9ED] bg-white">
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead>
-              <tr className="border-b border-[#E5E9ED] text-[#748294]">
+              <tr className="border-b border-[#E5E9ED] bg-[#F7F7F5] text-[#748294]">
                 <th className="px-4 py-3 font-semibold">Tên gói</th>
                 <th className="px-4 py-3 font-semibold">Giá / tháng</th>
                 <th className="px-4 py-3 font-semibold">Chi nhánh</th>
@@ -90,7 +90,7 @@ export default function PlansPage() {
                     <span className="font-medium">{p.name}</span>
                     {p.features.length > 0 && <span className="block text-xs text-[#748294]">{p.features.join(", ")}</span>}
                   </td>
-                  <td className="px-4 py-3 font-semibold text-[#244B70]">{formatVnd(p.priceMonthlyVnd)}</td>
+                  <td className="px-4 py-3 font-semibold tabular-nums text-[#244B70]">{formatVnd(p.priceMonthlyVnd)}</td>
                   <td className="px-4 py-3">{p.maxBranches}</td>
                   <td className="px-4 py-3">{p.maxUsers}</td>
                   <td className="px-4 py-3">{p.maxBookingsMonth}</td>
@@ -98,7 +98,11 @@ export default function PlansPage() {
                     <Badge tone={p.status === "active" ? "green" : "gray"}>{p.status === "active" ? "Đang bán" : "Ngừng bán"}</Badge>
                   </td>
                   <td className="px-4 py-3">
-                    <button type="button" onClick={() => setEditing(p)} className="text-sm font-semibold text-[#3979A8]">
+                    <button
+                      type="button"
+                      onClick={() => setEditing(p)}
+                      className="inline-flex min-h-[44px] items-center rounded-md px-2 text-sm font-semibold text-[#3979A8] transition-colors hover:bg-[#F2F6F9] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3979A8]"
+                    >
                       Sửa
                     </button>
                   </td>

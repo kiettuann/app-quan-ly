@@ -57,9 +57,9 @@ export default function ReportsPage() {
           <ErrorBox message={errMsg(revenueQ.error)} onRetry={() => void revenueQ.refetch()} />
         ) : (
           <dl className="space-y-2 text-sm">
-            <div className="flex justify-between gap-2"><dt className="text-[#748294]">Tổng doanh thu</dt><dd className="font-semibold text-[#244B70]">{formatVnd(n(revenueQ.data, "revenueVnd", "revenue_vnd", "totalRevenueVnd", "totalVnd"))}</dd></div>
-            <div className="flex justify-between gap-2"><dt className="text-[#748294]">Số hóa đơn</dt><dd>{n(revenueQ.data, "invoiceCount", "invoice_count", "count")}</dd></div>
-            <div className="flex justify-between gap-2"><dt className="text-[#748294]">Số lượt khách</dt><dd>{n(revenueQ.data, "customerCount", "customer_count")}</dd></div>
+            <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Tổng doanh thu</dt><dd className="text-right font-semibold tabular-nums text-[#244B70]">{formatVnd(n(revenueQ.data, "revenueVnd", "revenue_vnd", "totalRevenueVnd", "totalVnd"))}</dd></div>
+            <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Số hóa đơn</dt><dd className="text-right tabular-nums">{n(revenueQ.data, "invoiceCount", "invoice_count", "count")}</dd></div>
+            <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Số lượt khách</dt><dd className="text-right tabular-nums">{n(revenueQ.data, "customerCount", "customer_count")}</dd></div>
           </dl>
         )}
       </Card>
@@ -70,9 +70,9 @@ export default function ReportsPage() {
         ) : (
           <>
             <dl className="space-y-2 text-sm">
-              <div className="flex justify-between gap-2"><dt className="text-[#748294]">Doanh thu</dt><dd>{formatVnd(n(profitQ.data, "revenueVnd", "revenue_vnd"))}</dd></div>
-              <div className="flex justify-between gap-2"><dt className="text-[#748294]">Chi phí</dt><dd>{formatVnd(n(profitQ.data, "expenseVnd", "expense_vnd", "totalExpenseVnd"))}</dd></div>
-              <div className="flex justify-between gap-2 font-semibold text-[#244B70]"><dt>Lợi nhuận</dt><dd>{formatVnd(n(profitQ.data, "profitVnd", "profit_vnd"))}</dd></div>
+              <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Doanh thu</dt><dd className="text-right tabular-nums">{formatVnd(n(profitQ.data, "revenueVnd", "revenue_vnd"))}</dd></div>
+              <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Chi phí</dt><dd className="text-right tabular-nums">{formatVnd(n(profitQ.data, "expenseVnd", "expense_vnd", "totalExpenseVnd"))}</dd></div>
+              <div className="flex justify-between gap-2 font-semibold text-[#244B70]"><dt className="shrink-0">Lợi nhuận</dt><dd className="text-right tabular-nums">{formatVnd(n(profitQ.data, "profitVnd", "profit_vnd"))}</dd></div>
             </dl>
             <p className="mt-2 text-xs text-[#748294]">Lợi nhuận = doanh thu − chi phí (theo máy chủ).</p>
           </>
@@ -87,9 +87,9 @@ export default function ReportsPage() {
         ) : (
           <ul className="space-y-2">
             {topItems.map((it) => (
-              <li key={idOf(it) || s(it, "serviceName", "name")} className="flex justify-between gap-2 text-sm">
-                <span>{s(it, "serviceName", "name")}</span>
-                <span>{n(it, "count", "quantity", "totalCount")} lượt · {formatVnd(n(it, "revenueVnd", "revenue_vnd", "totalVnd"))}</span>
+              <li key={idOf(it) || s(it, "serviceName", "name")} className="text-sm">
+                <p className="truncate font-medium">{s(it, "serviceName", "name")}</p>
+                <p className="text-xs tabular-nums text-[#748294]">{n(it, "count", "quantity", "totalCount")} lượt · {formatVnd(n(it, "revenueVnd", "revenue_vnd", "totalVnd"))}</p>
               </li>
             ))}
           </ul>
@@ -104,9 +104,9 @@ export default function ReportsPage() {
         ) : (
           <ul className="space-y-2">
             {staffItems.map((it) => (
-              <li key={idOf(it) || s(it, "employeeName", "name")} className="flex justify-between gap-2 text-sm">
-                <span>{s(it, "employeeName", "name")}</span>
-                <span>{n(it, "bookingCount", "booking_count", "count")} lịch · {formatVnd(n(it, "revenueVnd", "revenue_vnd", "totalVnd"))} · HH {formatVnd(n(it, "commissionVnd", "commission_vnd"))}</span>
+              <li key={idOf(it) || s(it, "employeeName", "name")} className="text-sm">
+                <p className="truncate font-medium">{s(it, "employeeName", "name")}</p>
+                <p className="text-xs tabular-nums text-[#748294]">{n(it, "bookingCount", "booking_count", "count")} lịch · {formatVnd(n(it, "revenueVnd", "revenue_vnd", "totalVnd"))} · HH {formatVnd(n(it, "commissionVnd", "commission_vnd"))}</p>
               </li>
             ))}
           </ul>

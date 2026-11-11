@@ -4,6 +4,40 @@
 > Local only: **KHÔNG push GitHub, KHÔNG deploy, KHÔNG secret thật.**
 > Môi trường: Node v24.22.1, npm 10.9.4, Wrangler 4.159.0.
 
+## UI Polish v3 — chỉnh giao diện (2026-11-10, chưa deploy)
+
+- Hệ màu tinh chỉnh trong đúng token đã chốt: Navy `#244B70`, Blue `#3979A8`,
+  thêm 1 thang tint xanh nhạt (`#F2F6F9` → `#B9CDDD`) cho nền/badge mềm và
+  tint nhạt cho trạng thái (xanh lá/vàng/đỏ chỉ dùng khi có ý nghĩa trạng thái).
+  Không gradient trang trí, không thêm họ màu mới, không dữ liệu/biểu đồ giả.
+- Font Be Vietnam Pro nay được load thật qua Google Fonts ở cả 3 app
+  (trước đây chỉ khai báo trong font stack, trình duyệt rơi về Inter/system).
+- Shared UI (`ui.tsx` 3 app): Button có hover/active/disabled/loading rõ ràng,
+  Input focus ring, Card trắng viền nhạt bo 8–12px + shadow rất nhẹ, Badge nền
+  nhạt + chữ (không chỉ dùng màu), Empty/Loading/Error rõ ràng và trung thực.
+- BottomNav: mục active có pill nền tint + chữ Navy; Drawer nhóm 11 mục thành
+  4 nhóm (Nghiệp vụ / Nhân sự & lương / Tài chính & báo cáo / Quản lý), thứ tự
+  và tên mục không đổi. Tap target ≥44px.
+- 19 trang web + trang booking/admin: phân cấp tiêu đề nhất quán, số VND
+  tabular-nums, dòng danh sách truncate + badge không bị bóp, nút chính
+  full-width trên mobile, form đăng nhập/đăng ký trong card trắng căn giữa.
+- Sửa 1 lỗi tương thích deploy phát hiện khi kiểm tra: CORS ở
+  `workers/api/src/index.ts` thiếu origin `https://quanlynail1.pages.dev`
+  (bản trên repo đã có, bản trong zip Phase 4–7 chưa có) — deploy lại từ zip cũ
+  sẽ làm đăng nhập live bị chặn CORS. Đã thêm origin này; không đổi logic.
+- Kiểm tra sau polish: `npm test` 50/50 pass, typecheck sạch, lint 0 lỗi
+  (3 warning cũ trong script seed), build web 445 kB / booking 263 kB /
+  admin 323 kB JS. Visual QA bằng trình duyệt thật (Chrome headless, API local
+  + dữ liệu thật: 1 tiệm, 2 dịch vụ, 1 khách, 1 nhân viên, 1 lịch hẹn):
+  login, overview, bookings, sales, services, customers (mobile 390px +
+  desktop 1280px), drawer, booking public, admin tenants sau khi đăng nhập —
+  không tràn ngang, không cắt chữ. Desktop vẫn giữ container `max-w-3xl`
+  mobile-first, chưa có sidebar trái (cần làm riêng nếu muốn).
+- Chưa kiểm chứng: Be Vietnam Pro render thật (môi trường kiểm tra chặn
+  fonts.googleapis.com nên ảnh chụp dùng font fallback); PWA cài trên điện
+  thoại thật; các trang đã đăng nhập còn lại (hoa hồng, lương, kho, báo cáo…)
+  chỉ kiểm tra bằng build/typecheck, chưa mở từng trang trên trình duyệt.
+
 ## Kết quả xác minh (2026-11-10, sau Phase 4–7)
 
 | Kiểm tra | Kết quả |

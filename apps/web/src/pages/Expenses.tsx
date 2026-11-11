@@ -117,12 +117,12 @@ export default function ExpensesPage() {
       {notice ? <Notice kind={notice.kind} text={notice.text} onClose={() => setNotice(null)} /> : null}
 
       <Card title="Nhóm chi phí">
-        <div className="flex gap-2">
-          <input value={catName} onChange={(e) => setCatName(e.target.value)} placeholder="Tên nhóm mới" aria-label="Tên nhóm chi phí mới" className={inputCls} />
-          <select value={catType} onChange={(e) => setCatType(e.target.value)} aria-label="Loại nhóm chi phí" className={inputCls}>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <input value={catName} onChange={(e) => setCatName(e.target.value)} placeholder="Tên nhóm mới" aria-label="Tên nhóm chi phí mới" className={`${inputCls} min-w-0 flex-1`} />
+          <select value={catType} onChange={(e) => setCatType(e.target.value)} aria-label="Loại nhóm chi phí" className={`${inputCls} min-w-0 sm:w-auto`}>
             {EXPENSE_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
-          <button type="button" disabled={catMut.isPending || !catName.trim()} onClick={() => catMut.mutate()} className={btnSecondary}>Thêm nhóm</button>
+          <button type="button" disabled={catMut.isPending || !catName.trim()} onClick={() => catMut.mutate()} className={`${btnSecondary} shrink-0`}>Thêm nhóm</button>
         </div>
       </Card>
 
@@ -157,7 +157,7 @@ export default function ExpensesPage() {
               <input value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} placeholder="vd: Tiền thuê mặt bằng tháng 11" className={inputCls} />
             </Field>
             {formError ? <p role="alert" className="text-sm text-[#C0392B]">{formError}</p> : null}
-            <button type="button" onClick={submit} disabled={saveMut.isPending} className={btnPrimary}>
+            <button type="button" onClick={submit} disabled={saveMut.isPending} className={`${btnPrimary} w-full`}>
               {saveMut.isPending ? "Đang xử lý..." : editing ? "Lưu thay đổi" : "Thêm chi phí"}
             </button>
           </div>
@@ -203,10 +203,10 @@ export default function ExpensesPage() {
             {expenses.map((e) => (
               <li key={idOf(e)} className="rounded-lg border border-[#E5E9ED] p-3">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium">{s(e, "description")}</p>
-                  <p className="text-sm font-semibold text-[#244B70]">{formatVnd(n(e, "amountVnd", "amount_vnd"))}</p>
+                  <p className="min-w-0 flex-1 truncate text-sm font-medium">{s(e, "description")}</p>
+                  <p className="shrink-0 text-sm font-semibold tabular-nums text-[#244B70]">{formatVnd(n(e, "amountVnd", "amount_vnd"))}</p>
                 </div>
-                <p className="mt-1 text-xs text-[#748294]">
+                <p className="mt-1 break-words text-xs text-[#748294]">
                   {formatDate(s(e, "expenseDate", "expense_date"))}
                   {s(e, "categoryName", "category_name") ? ` · ${s(e, "categoryName", "category_name")}` : ""}
                 </p>

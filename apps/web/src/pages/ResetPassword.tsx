@@ -36,12 +36,12 @@ export default function ResetPasswordPage() {
 
   if (!token) {
     return (
-      <main className="p-4">
+      <main className="mx-auto w-full max-w-md p-4">
         <h1 className="text-xl font-bold text-[#244B70]">Đặt lại mật khẩu</h1>
         <p className="mt-4 rounded-lg border border-[#E5E9ED] bg-white p-4 text-sm">
           Link đặt lại mật khẩu không hợp lệ. Vui lòng yêu cầu gửi lại email đặt lại mật khẩu.
         </p>
-        <Link to="/quen-mat-khau" className="mt-4 inline-block text-sm font-semibold text-[#3979A8]">
+        <Link to="/quen-mat-khau" className="mt-4 inline-flex min-h-[44px] items-center text-sm font-semibold text-[#3979A8]">
           Quên mật khẩu
         </Link>
       </main>
@@ -49,17 +49,18 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <main className="p-4">
+    <main className="mx-auto w-full max-w-md p-4">
       <h1 className="text-xl font-bold text-[#244B70]">Đặt lại mật khẩu</h1>
       {done ? (
         <div className="mt-4 rounded-lg border border-[#E5E9ED] bg-white p-4">
           <p className="text-sm">Đặt lại mật khẩu thành công. Bạn có thể đăng nhập bằng mật khẩu mới.</p>
-          <Link to="/dang-nhap" className="mt-3 inline-block text-sm font-semibold text-[#3979A8]">
+          <Link to="/dang-nhap" className="mt-3 inline-flex min-h-[44px] items-center text-sm font-semibold text-[#3979A8]">
             Đăng nhập
           </Link>
         </div>
       ) : (
-        <form onSubmit={onSubmit} className="mt-6 space-y-4">
+        <div className="mt-6 rounded-lg border border-[#E5E9ED] bg-white p-4">
+      <form onSubmit={onSubmit} className="space-y-4">
           <div>
             <label htmlFor="password" className="text-sm font-medium">
               Mật khẩu mới
@@ -97,6 +98,7 @@ export default function ResetPasswordPage() {
             {loading ? "Đang xử lý..." : "Đặt lại mật khẩu"}
           </button>
         </form>
+      </div>
       )}
     </main>
   );

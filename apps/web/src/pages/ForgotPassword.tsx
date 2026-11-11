@@ -37,7 +37,7 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <main className="p-4">
+    <main className="mx-auto w-full max-w-md p-4">
       <h1 className="text-xl font-bold text-[#244B70]">Quên mật khẩu</h1>
       <p className="mt-1 text-sm text-[#748294]">Nhập email đăng ký để nhận liên kết đặt lại mật khẩu.</p>
       {sent ? (
@@ -46,7 +46,8 @@ export default function ForgotPasswordPage() {
           Vui lòng kiểm tra cả hộp thư rác.
         </p>
       ) : (
-        <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
+        <div className="mt-6 rounded-lg border border-[#E5E9ED] bg-white p-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label htmlFor="email" className="text-sm font-medium">Email</label>
             <input
@@ -65,9 +66,10 @@ export default function ForgotPasswordPage() {
             {loading ? "Đang xử lý..." : "Gửi liên kết đặt lại"}
           </button>
         </form>
+      </div>
       )}
       <p className="mt-4 text-sm text-[#748294]">
-        <Link to="/dang-nhap" className="font-semibold text-[#3979A8]">Quay lại đăng nhập</Link>
+        <Link to="/dang-nhap" className="inline-flex min-h-[44px] items-center font-semibold text-[#3979A8]">Quay lại đăng nhập</Link>
       </p>
     </main>
   );

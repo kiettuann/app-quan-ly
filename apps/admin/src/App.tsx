@@ -26,11 +26,11 @@ function Shell({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   return (
-    <div className="mx-auto min-h-screen max-w-5xl bg-[#F7F7F5] px-4 pb-16">
-      <header className="flex flex-wrap items-center justify-between gap-2 py-4">
-        <div>
+    <div className="mx-auto min-h-screen max-w-5xl bg-[#F7F7F5] px-4 pb-16 sm:px-6">
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E5E9ED] py-4">
+        <div className="min-w-0">
           <h1 className="text-xl font-bold text-[#244B70]">quanly.store — Quản trị nền tảng</h1>
-          {user && <p className="mt-0.5 text-xs text-[#748294]">Đăng nhập: {user.email}</p>}
+          {user && <p className="mt-0.5 break-words text-xs text-[#748294]">Đăng nhập: {user.email}</p>}
         </div>
         <button
           type="button"
@@ -38,20 +38,20 @@ function Shell({ children }: { children: ReactNode }) {
             logout();
             navigate("/dang-nhap", { replace: true });
           }}
-          className="h-11 rounded-lg bg-white px-4 text-sm font-semibold text-[#244B70] ring-1 ring-[#E5E9ED]"
+          className="h-11 shrink-0 rounded-lg bg-white px-4 text-sm font-semibold text-[#244B70] ring-1 ring-[#E5E9ED] transition-colors hover:bg-[#F7F7F5] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3979A8]"
         >
           Đăng xuất
         </button>
       </header>
-      <nav className="mb-4 flex flex-wrap gap-2" aria-label="Điều hướng quản trị">
+      <nav className="mb-6 mt-4 flex flex-wrap gap-2" aria-label="Điều hướng quản trị">
         {NAV.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
             end={item.end}
             className={({ isActive }) =>
-              `h-11 rounded-lg px-4 text-sm font-semibold leading-[2.75rem] ${
-                isActive ? "bg-[#244B70] text-white" : "bg-white text-[#244B70] ring-1 ring-[#E5E9ED]"
+              `flex h-11 items-center justify-center rounded-lg px-4 text-sm font-semibold transition-colors ${
+                isActive ? "bg-[#244B70] text-white" : "bg-white text-[#244B70] ring-1 ring-[#E5E9ED] hover:bg-[#F7F7F5]"
               }`
             }
           >

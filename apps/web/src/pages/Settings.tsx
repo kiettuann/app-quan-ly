@@ -86,9 +86,9 @@ export default function SettingsPage() {
 
       <Card title="Tài khoản của tôi">
         <dl className="space-y-2 text-sm">
-          <div className="flex justify-between gap-2"><dt className="text-[#748294]">Email</dt><dd className="font-medium">{user?.email ?? "—"}</dd></div>
-          <div className="flex justify-between gap-2"><dt className="text-[#748294]">Họ tên</dt><dd>{user?.fullName ?? "—"}</dd></div>
-          <div className="flex justify-between gap-2"><dt className="text-[#748294]">Vai trò hiện tại</dt><dd className="font-medium">{user?.role ?? "—"}</dd></div>
+          <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Email</dt><dd className="min-w-0 break-all text-right font-medium">{user?.email ?? "—"}</dd></div>
+          <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Họ tên</dt><dd className="min-w-0 break-words text-right">{user?.fullName ?? "—"}</dd></div>
+          <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Vai trò hiện tại</dt><dd className="min-w-0 break-words text-right font-medium">{user?.role ?? "—"}</dd></div>
         </dl>
       </Card>
 
@@ -97,12 +97,12 @@ export default function SettingsPage() {
           <ErrorBox message={errMsg(tenantQ.error)} onRetry={() => void tenantQ.refetch()} />
         ) : tenant ? (
           <dl className="space-y-2 text-sm">
-            <div className="flex justify-between gap-2"><dt className="text-[#748294]">Tên tiệm</dt><dd className="font-medium">{s(tenant, "name", "tenantName") || "—"}</dd></div>
-            <div className="flex justify-between gap-2"><dt className="text-[#748294]">Số điện thoại</dt><dd>{s(tenant, "phone") || "—"}</dd></div>
-            <div className="flex justify-between gap-2"><dt className="text-[#748294]">Email</dt><dd>{s(tenant, "email") || "—"}</dd></div>
-            <div className="flex justify-between gap-2"><dt className="text-[#748294]">Gói hiện tại</dt><dd>{plan ? s(plan, "name") : s(tenant, "planName", "plan_name") || "—"}</dd></div>
+            <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Tên tiệm</dt><dd className="min-w-0 break-words text-right font-medium">{s(tenant, "name", "tenantName") || "—"}</dd></div>
+            <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Số điện thoại</dt><dd className="text-right">{s(tenant, "phone") || "—"}</dd></div>
+            <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Email</dt><dd className="min-w-0 break-all text-right">{s(tenant, "email") || "—"}</dd></div>
+            <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Gói hiện tại</dt><dd className="min-w-0 break-words text-right">{plan ? s(plan, "name") : s(tenant, "planName", "plan_name") || "—"}</dd></div>
             {plan ? (
-              <div className="flex justify-between gap-2"><dt className="text-[#748294]">Giá gói</dt><dd>{formatVnd(n(plan, "priceVnd", "price_vnd"))} / tháng</dd></div>
+              <div className="flex justify-between gap-2"><dt className="shrink-0 text-[#748294]">Giá gói</dt><dd className="text-right tabular-nums">{formatVnd(n(plan, "priceVnd", "price_vnd"))} / tháng</dd></div>
             ) : null}
           </dl>
         ) : (
@@ -118,9 +118,9 @@ export default function SettingsPage() {
         ) : (
           <ul className="space-y-2">
             {(usersQ.data ?? []).map((u) => (
-              <li key={idOf(u)} className="flex justify-between gap-2 rounded-lg border border-[#E5E9ED] p-3 text-sm">
-                <span>{s(u, "fullName", "full_name") || s(u, "email")}</span>
-                <span className="text-[#748294]">{s(u, "roleName", "role_name", "role")} · {s(u, "email")}</span>
+              <li key={idOf(u)} className="rounded-lg border border-[#E5E9ED] p-3 text-sm">
+                <p className="truncate font-medium">{s(u, "fullName", "full_name") || s(u, "email")}</p>
+                <p className="break-all text-xs text-[#748294]">{s(u, "roleName", "role_name", "role")} · {s(u, "email")}</p>
               </li>
             ))}
           </ul>
@@ -175,7 +175,7 @@ export default function SettingsPage() {
               if (invite.branchIds.length === 0) return setInviteError("Chọn ít nhất 1 chi nhánh.");
               inviteMut.mutate();
             }}
-            className={btnPrimary}
+            className={`${btnPrimary} w-full`}
           >
             {inviteMut.isPending ? "Đang xử lý..." : "Gửi lời mời"}
           </button>
@@ -192,7 +192,7 @@ export default function SettingsPage() {
             {(rolesQ.data ?? []).map((r) => (
               <li key={idOf(r)} className="rounded-lg border border-[#E5E9ED] p-3 text-sm">
                 <p className="font-medium">{s(r, "name")}</p>
-                <p className="text-xs text-[#748294]">
+                <p className="break-words text-xs text-[#748294]">
                   {arr(r, "permissions").length > 0
                     ? arr(r, "permissions").map((p) => s(p, "name", "key")).join(", ")
                     : `${n(r, "permissionCount", "permission_count")} quyền`}
@@ -245,7 +245,7 @@ export default function SettingsPage() {
               if (roleForm.permissions.length === 0) return setRoleError("Chọn ít nhất 1 quyền.");
               roleMut.mutate();
             }}
-            className={btnPrimary}
+            className={`${btnPrimary} w-full`}
           >
             {roleMut.isPending ? "Đang xử lý..." : "Tạo vai trò"}
           </button>

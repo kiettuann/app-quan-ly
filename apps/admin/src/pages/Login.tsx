@@ -39,10 +39,11 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="mx-auto max-w-md p-4">
-      <h1 className="text-xl font-bold text-[#244B70]">Quản trị nền tảng</h1>
-      <p className="mt-1 text-sm text-[#748294]">Chỉ tài khoản quản trị nền tảng (platform_admin) mới đăng nhập được ở đây.</p>
-      <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
+    <main className="mx-auto max-w-md px-4 pb-16 pt-10 sm:pt-16">
+      <div className="rounded-lg border border-[#E5E9ED] bg-white p-5 sm:p-6">
+        <h1 className="text-xl font-bold text-[#244B70]">Quản trị nền tảng</h1>
+        <p className="mt-1 text-sm leading-relaxed text-[#748294]">Chỉ tài khoản quản trị nền tảng (platform_admin) mới đăng nhập được ở đây.</p>
+        <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
         <div>
           <label htmlFor="email" className={labelCls}>
             Email
@@ -66,6 +67,7 @@ export default function LoginPage() {
           {loading ? "Đang xử lý..." : "Đăng nhập"}
         </button>
       </form>
+      </div>
     </main>
   );
 }

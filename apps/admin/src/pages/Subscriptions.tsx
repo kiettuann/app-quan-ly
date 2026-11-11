@@ -54,7 +54,7 @@ export default function SubscriptionsPage() {
         <div className="overflow-x-auto rounded-lg border border-[#E5E9ED] bg-white">
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead>
-              <tr className="border-b border-[#E5E9ED] text-[#748294]">
+              <tr className="border-b border-[#E5E9ED] bg-[#F7F7F5] text-[#748294]">
                 <th className="px-4 py-3 font-semibold">Tenant</th>
                 <th className="px-4 py-3 font-semibold">Gói</th>
                 <th className="px-4 py-3 font-semibold">Trạng thái</th>

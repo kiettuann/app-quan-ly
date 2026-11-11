@@ -50,7 +50,7 @@ export default function TenantsPage() {
         <div className="overflow-x-auto rounded-lg border border-[#E5E9ED] bg-white">
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead>
-              <tr className="border-b border-[#E5E9ED] text-[#748294]">
+              <tr className="border-b border-[#E5E9ED] bg-[#F7F7F5] text-[#748294]">
                 <th className="px-4 py-3 font-semibold">Tên tiệm</th>
                 <th className="px-4 py-3 font-semibold">Slug</th>
                 <th className="px-4 py-3 font-semibold">Liên hệ</th>
@@ -68,7 +68,7 @@ export default function TenantsPage() {
                 >
                   <td className="px-4 py-3 font-medium">{t.name}</td>
                   <td className="px-4 py-3 text-[#748294]">{t.slug}</td>
-                  <td className="px-4 py-3">
+                  <td className="break-words px-4 py-3">
                     {t.email ?? "—"}
                     {t.phone && <span className="block text-xs text-[#748294]">{t.phone}</span>}
                   </td>
@@ -91,16 +91,39 @@ export default function TenantsPage() {
           {detailQuery.isPending && <div className="mt-3"><LoadingBox text="Đang tải chi tiết..." /></div>}
           {detailQuery.isError && <div className="mt-3"><ErrorBox message="Không tải được chi tiết tenant." onRetry={() => detailQuery.refetch()} /></div>}
           {detail && (
-            <div className="mt-3 space-y-2 text-sm">
-              <p><span className="text-[#748294]">Tên: </span><strong>{detail.name}</strong></p>
-              <p><span className="text-[#748294]">Slug: </span>{detail.slug}</p>
-              <p><span className="text-[#748294]">Email: </span>{detail.email ?? "—"}</p>
-              <p><span className="text-[#748294]">SĐT: </span>{detail.phone ?? "—"}</p>
-              <p><span className="text-[#748294]">Gói: </span>{detail.planName ?? "—"}</p>
-              <p><span className="text-[#748294]">Trạng thái: </span><Badge tone={statusTone(detail.status)}>{TENANT_STATUS_LABEL[detail.status] ?? detail.status}</Badge></p>
-              <p><span className="text-[#748294]">Ngày tạo: </span>{formatDate(detail.createdAt)}</p>
-              <div className="flex flex-wrap gap-2 pt-2">
-                {detail.status === "suspended" ? (
+            <>
+            <dl className="mt-4 space-y-2.5 text-sm">
+              <div className="grid grid-cols-[104px_1fr] gap-3">
+                <dt className="text-[#748294]">Tên</dt>
+                <dd className="min-w-0 break-words font-semibold">{detail.name}</dd>
+              </div>
+              <div className="grid grid-cols-[104px_1fr] gap-3">
+                <dt className="text-[#748294]">Slug</dt>
+                <dd className="min-w-0 break-words">{detail.slug}</dd>
+              </div>
+              <div className="grid grid-cols-[104px_1fr] gap-3">
+                <dt className="text-[#748294]">Email</dt>
+                <dd className="min-w-0 break-words">{detail.email ?? "—"}</dd>
+              </div>
+              <div className="grid grid-cols-[104px_1fr] gap-3">
+                <dt className="text-[#748294]">SĐT</dt>
+                <dd className="min-w-0 break-words">{detail.phone ?? "—"}</dd>
+              </div>
+              <div className="grid grid-cols-[104px_1fr] gap-3">
+                <dt className="text-[#748294]">Gói</dt>
+                <dd className="min-w-0 break-words">{detail.planName ?? "—"}</dd>
+              </div>
+              <div className="grid grid-cols-[104px_1fr] gap-3">
+                <dt className="text-[#748294]">Trạng thái</dt>
+                <dd><Badge tone={statusTone(detail.status)}>{TENANT_STATUS_LABEL[detail.status] ?? detail.status}</Badge></dd>
+              </div>
+              <div className="grid grid-cols-[104px_1fr] gap-3">
+                <dt className="text-[#748294]">Ngày tạo</dt>
+                <dd>{formatDate(detail.createdAt)}</dd>
+              </div>
+            </dl>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {detail.status === "suspended" ? (
                   <button
                     type="button"
                     disabled={statusMutation.isPending}
@@ -125,11 +148,11 @@ export default function TenantsPage() {
                 )}
               </div>
               {actionError && (
-                <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-[#C0392B]">
+                <p role="alert" className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-[#C0392B]">
                   {actionError}
                 </p>
               )}
-            </div>
+            </>
           )}
         </section>
       )}

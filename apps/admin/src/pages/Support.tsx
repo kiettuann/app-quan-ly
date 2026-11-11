@@ -56,7 +56,7 @@ export default function SupportPage() {
             {...register("reason")}
             rows={3}
             placeholder="vd: Khách báo không đăng nhập được sau khi đổi mật khẩu, cần kiểm tra tài khoản owner."
-            className="mt-1 w-full rounded-lg border border-[#E5E9ED] bg-white px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-lg border border-[#E5E9ED] bg-white px-3 py-2 text-sm outline-none transition-colors placeholder:text-[#748294] focus:border-[#3979A8] focus:ring-2 focus:ring-[#3979A8]/25"
           />
           {errors.reason && <p className="mt-1 text-xs text-[#C0392B]">{errors.reason.message}</p>}
         </div>
@@ -79,15 +79,36 @@ export default function SupportPage() {
           <p className="mt-1 text-xs text-[#748294]">
             Đây là toàn bộ thông tin được phép hiện ở đây. Dữ liệu nghiệp vụ của tiệm không bao giờ hiện trên trang hỗ trợ.
           </p>
-          <div className="mt-3 space-y-2 text-sm">
-            <p><span className="text-[#748294]">Tên tiệm: </span><strong>{summary.name}</strong></p>
-            <p><span className="text-[#748294]">Slug: </span>{summary.slug}</p>
-            <p><span className="text-[#748294]">Trạng thái: </span>{TENANT_STATUS_LABEL[summary.status] ?? summary.status}</p>
-            <p><span className="text-[#748294]">Gói: </span>{summary.planName ?? "—"}</p>
-            <p><span className="text-[#748294]">Email: </span>{summary.email ?? "—"}</p>
-            <p><span className="text-[#748294]">SĐT: </span>{summary.phone ?? "—"}</p>
-            <p><span className="text-[#748294]">Ngày tạo: </span>{formatDate(summary.createdAt)}</p>
-          </div>
+          <dl className="mt-4 space-y-2.5 text-sm">
+            <div className="grid grid-cols-[104px_1fr] gap-3">
+              <dt className="text-[#748294]">Tên tiệm</dt>
+              <dd className="min-w-0 break-words font-semibold">{summary.name}</dd>
+            </div>
+            <div className="grid grid-cols-[104px_1fr] gap-3">
+              <dt className="text-[#748294]">Slug</dt>
+              <dd className="min-w-0 break-words">{summary.slug}</dd>
+            </div>
+            <div className="grid grid-cols-[104px_1fr] gap-3">
+              <dt className="text-[#748294]">Trạng thái</dt>
+              <dd>{TENANT_STATUS_LABEL[summary.status] ?? summary.status}</dd>
+            </div>
+            <div className="grid grid-cols-[104px_1fr] gap-3">
+              <dt className="text-[#748294]">Gói</dt>
+              <dd className="min-w-0 break-words">{summary.planName ?? "—"}</dd>
+            </div>
+            <div className="grid grid-cols-[104px_1fr] gap-3">
+              <dt className="text-[#748294]">Email</dt>
+              <dd className="min-w-0 break-words">{summary.email ?? "—"}</dd>
+            </div>
+            <div className="grid grid-cols-[104px_1fr] gap-3">
+              <dt className="text-[#748294]">SĐT</dt>
+              <dd className="min-w-0 break-words">{summary.phone ?? "—"}</dd>
+            </div>
+            <div className="grid grid-cols-[104px_1fr] gap-3">
+              <dt className="text-[#748294]">Ngày tạo</dt>
+              <dd>{formatDate(summary.createdAt)}</dd>
+            </div>
+          </dl>
         </section>
       )}
       {!summary && !accessMutation.isPending && !accessMutation.isError && (
