@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../lib/auth.js";
+import { DEMO_NO_AUTH } from "../lib/demo.js";
 
 // Drawer mở từ "Thêm" — DESIGN_SYSTEM.md §7, đúng thứ tự 11 mục, gom nhóm
 // theo nghiệp vụ để dễ quét; tên và thứ tự mục không đổi.
@@ -62,6 +63,9 @@ export default function Drawer({ open, onClose }: { open: boolean; onClose: () =
               {user.role ? ` · ${user.role}` : ""}
             </p>
           ) : null}
+          {DEMO_NO_AUTH ? (
+            <p className="mt-1 text-xs font-medium text-blue">Chế độ dùng thử — chưa cần đăng nhập</p>
+          ) : null}
         </div>
         <nav aria-label="Chức năng mở rộng" className="flex-1 px-2 py-2">
           {GROUPS.map(({ heading, items }) => (
@@ -87,18 +91,22 @@ export default function Drawer({ open, onClose }: { open: boolean; onClose: () =
             </div>
           ))}
         </nav>
-        <div className="border-t border-border p-4">
-          <button
-            type="button"
-            onClick={() => {
-              onClose();
-              logout();
-            }}
-            className="inline-flex min-h-[44px] w-full items-center justify-center rounded-lg border border-border bg-white px-4 text-sm font-semibold text-error hover:bg-soft-error"
-          >
-            Đăng xuất
-          </button>
-        </div>
+        {/* Chế độ demo chưa cần đăng nhập: ẩn nút Đăng xuất (logout cũng là
+            no-op khi DEMO_NO_AUTH — xem lib/auth.tsx). */}
+        {DEMO_NO_AUTH ? null : (
+          <div className="border-t border-border p-4">
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                logout();
+              }}
+              className="inline-flex min-h-[44px] w-full items-center justify-center rounded-lg border border-border bg-white px-4 text-sm font-semibold text-error hover:bg-soft-error"
+            >
+              Đăng xuất
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

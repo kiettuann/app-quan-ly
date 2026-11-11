@@ -1,9 +1,10 @@
 // Auth — CONTRACTS.md §5. Token + user lưu localStorage ("ql_token", "ql_user").
 // Login trả { token, user? } (kèm expiresAt); nếu thiếu user thì gọi /auth/me.
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, get, post } from "./api.js";
+import { DEMO_EMAIL, DEMO_NO_AUTH, DEMO_PASSWORD } from "./demo.js";
 import type { Row } from "./types.js";
 
 export interface AuthUser {
@@ -33,6 +34,9 @@ interface AuthContextValue {
   logout: () => void;
   register: (data: RegisterData) => Promise<void>;
   refreshMe: () => Promise<void>;
+  /** Chế độ demo: đăng nhập demo tự động thất bại (mất mạng / API lỗi). */
+  demoFailed: boolean;
+  retryDemoLogin: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -66,6 +70,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem("ql_token"));
   const [user, setUser] = useState<AuthUser | null>(() => readStoredUser());
   const [loading, setLoading] = useState(false);
+  const [demoFailed, setDemoFailed] = useState(false);
+  // Chặn đăng nhập demo tự động chạy 2 lần (StrictMode) và chặn vòng lặp
+  // thử lại khi API trả 401 liên tục.
+  const demoLoginStarted = useRef(false);
+  const demoReloginAt = useRef(0);
 
   const clearSession = useCallback(() => {
     localStorage.removeItem("ql_token");
@@ -105,6 +114,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const logout = useCallback(() => {
+    // Chế độ demo chưa cần đăng nhập: không có nút đăng xuất nào hiển thị,
+    // logout là no-op để app không rơi về màn hình đăng nhập đã ẩn.
+    if (DEMO_NO_AUTH) return;
     const t = localStorage.getItem("ql_token");
     if (t) {
       api("/api/v1/auth/logout", { method: "POST" }).catch(() => undefined);
@@ -112,6 +124,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearSession();
     navigate("/dang-nhap");
   }, [clearSession, navigate]);
+
+  /** Đăng nhập thầm bằng tài khoản demo (chế độ DEMO_NO_AUTH). */
+  const demoLogin = useCallback(() => {
+    setDemoFailed(false);
+    setLoading(true);
+    return login(DEMO_EMAIL, DEMO_PASSWORD)
+      .catch(() => {
+        setDemoFailed(true);
+      })
+      .finally(() => setLoading(false));
+  }, [login]);
+
+  const retryDemoLogin = useCallback(() => {
+    demoLoginStarted.current = false;
+    void demoLogin();
+  }, [demoLogin]);
+
+  // Chế độ demo: chưa có phiên thì tự đăng nhập tài khoản demo ngay khi mở
+  // app, không hiện màn hình đăng nhập. Chế độ thường: không làm gì.
+  useEffect(() => {
+    if (!DEMO_NO_AUTH || token || demoLoginStarted.current) return;
+    demoLoginStarted.current = true;
+    void demoLogin();
+  }, [token, demoLogin]);
 
   const register = useCallback(
     async (data: RegisterData) => {
@@ -144,17 +180,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [token, user, refreshMe]);
 
   // api.ts bắn sự kiện này khi gặp 401.
+  // Chế độ demo: phiên hết hạn thì đăng nhập lại thầm bằng tài khoản demo
+  // (chống vòng lặp: tối đa 1 lần / 10 giây; thất bại thì hiện màn hình thử
+  // lại thay vì quay về /dang-nhap đã ẩn). Chế độ thường: đăng xuất như cũ.
   useEffect(() => {
     const onUnauthorized = () => {
+      if (DEMO_NO_AUTH) {
+        const now = Date.now();
+        if (now - demoReloginAt.current < 10_000) return;
+        demoReloginAt.current = now;
+        demoLoginStarted.current = true;
+        void demoLogin();
+        return;
+      }
       clearSession();
       navigate("/dang-nhap");
     };
     window.addEventListener("ql:unauthorized", onUnauthorized);
     return () => window.removeEventListener("ql:unauthorized", onUnauthorized);
-  }, [clearSession, navigate]);
+  }, [clearSession, navigate, demoLogin]);
 
   return (
-    <AuthContext.Provider value={{ token, user, loading, login, logout, register, refreshMe }}>
+    <AuthContext.Provider value={{ token, user, loading, login, logout, register, refreshMe, demoFailed, retryDemoLogin }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,9 +1,11 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
-import BottomNav from "./components/BottomNav.js";
+import TopNav from "./components/TopNav.js";
 import Drawer from "./components/Drawer.js";
 import { AuthProvider, useAuth } from "./lib/auth.js";
+import { DEMO_NO_AUTH } from "./lib/demo.js";
+import { btnPrimary } from "./lib/ui.js";
 import AttendancePage from "./pages/Attendance.js";
 import BookingsPage from "./pages/Bookings.js";
 import BranchesPage from "./pages/Branches.js";
@@ -24,10 +26,34 @@ import ServicesPage from "./pages/Services.js";
 import SettingsPage from "./pages/Settings.js";
 import StaffPage from "./pages/Staff.js";
 
-/** Guard: mọi route trừ /dang-nhap, /quen-mat-khau, /dang-ky, /dat-lai-mat-khau đều yêu cầu đăng nhập. */
+const PUBLIC_PATHS = ["/dang-nhap", "/quen-mat-khau", "/dang-ky", "/dat-lai-mat-khau"];
+
+/** Guard: mọi route trừ các trang auth đều yêu cầu đăng nhập.
+ * Chế độ demo (DEMO_NO_AUTH): AuthProvider tự đăng nhập tài khoản demo khi
+ * mở app nên không bao giờ hiện màn hình đăng nhập — trong lúc chờ phiên thì
+ * hiện "Đang mở tiệm demo…", thất bại thì hiện nút thử lại. */
 export function RequireAuth({ children }: { children: ReactNode }) {
-  const { token } = useAuth();
+  const { token, demoFailed, retryDemoLogin } = useAuth();
   const location = useLocation();
+  if (DEMO_NO_AUTH) {
+    if (token) return <>{children}</>;
+    if (demoFailed) {
+      return (
+        <main className="flex min-h-screen flex-col items-center justify-center gap-3 p-4 text-center">
+          <p className="text-base font-semibold">Không mở được tiệm demo.</p>
+          <p className="text-sm text-muted">Kiểm tra mạng / API rồi thử lại.</p>
+          <button type="button" onClick={() => retryDemoLogin()} className={btnPrimary}>
+            Thử lại
+          </button>
+        </main>
+      );
+    }
+    return (
+      <main className="flex min-h-screen items-center justify-center p-4">
+        <p className="text-sm text-muted">Đang mở tiệm demo…</p>
+      </main>
+    );
+  }
   if (!token) return <Navigate to="/dang-nhap" state={{ from: location.pathname }} replace />;
   return <>{children}</>;
 }
@@ -36,25 +62,31 @@ function Protected({ children }: { children: ReactNode }) {
   return <RequireAuth>{children}</RequireAuth>;
 }
 
+/** Trang auth (đăng nhập / đăng ký / quên mật khẩu): chế độ demo thì ẩn hẳn,
+ * vào thẳng trang chính. Chế độ thường: giữ nguyên như cũ. */
+function AuthPageGate({ children }: { children: ReactNode }) {
+  if (DEMO_NO_AUTH) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
+
 function Shell() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const location = useLocation();
-  const isPublic = ["/dang-nhap", "/quen-mat-khau", "/dang-ky", "/dat-lai-mat-khau"].includes(
-    location.pathname,
-  );
+  const isPublic = PUBLIC_PATHS.includes(location.pathname);
   // Trang Bán hàng (POS) cần gần hết chiều ngang màn hình để bấm bill trong
   // 1 màn hình không cuộn — chỉ route này bỏ max-w-3xl, các trang khác giữ nguyên.
   const isSales = location.pathname === "/ban-hang";
   return (
     // Container mobile-first, max-w-3xl: các trang đã tự có p-4 nên container
-    // không thêm padding ngang (tránh padding kép). Padding dưới chừa chỗ cho
-    // BottomNav + safe-area trên điện thoại có tai thỏ.
-    <div className={`mx-auto min-h-screen bg-[#F7F7F5] pb-[calc(5.5rem+env(safe-area-inset-bottom))] ${isSales ? "max-w-none" : "max-w-3xl"}`}>
+    // không thêm padding ngang (tránh padding kép). Nav chính nằm TRÊN ĐẦU
+    // trang (TopNav, sticky) — không còn BottomNav nên không cần padding dưới.
+    <div className={`mx-auto min-h-screen bg-[#F7F7F5] ${isSales ? "max-w-none" : "max-w-3xl"}`}>
+      {!isPublic ? <TopNav onOpenDrawer={() => setDrawerOpen(true)} /> : null}
       <Routes>
-        <Route path="/dang-nhap" element={<LoginPage />} />
-        <Route path="/quen-mat-khau" element={<ForgotPasswordPage />} />
-        <Route path="/dang-ky" element={<RegisterPage />} />
-        <Route path="/dat-lai-mat-khau" element={<ResetPasswordPage />} />
+        <Route path="/dang-nhap" element={<AuthPageGate><LoginPage /></AuthPageGate>} />
+        <Route path="/quen-mat-khau" element={<AuthPageGate><ForgotPasswordPage /></AuthPageGate>} />
+        <Route path="/dang-ky" element={<AuthPageGate><RegisterPage /></AuthPageGate>} />
+        <Route path="/dat-lai-mat-khau" element={<AuthPageGate><ResetPasswordPage /></AuthPageGate>} />
         <Route path="/" element={<Protected><OverviewPage /></Protected>} />
         <Route path="/lich-hen" element={<Protected><BookingsPage /></Protected>} />
         <Route path="/ban-hang" element={<Protected><SalesPage /></Protected>} />
@@ -72,12 +104,7 @@ function Shell() {
         <Route path="/goi-dich-vu" element={<Protected><PlanPage /></Protected>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-      {!isPublic ? (
-        <>
-          <BottomNav onOpenDrawer={() => setDrawerOpen(true)} />
-          <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
-        </>
-      ) : null}
+      {!isPublic ? <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} /> : null}
     </div>
   );
 }

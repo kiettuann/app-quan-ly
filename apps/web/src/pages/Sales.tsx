@@ -415,15 +415,16 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
   }
 
   // POS vừa đúng 1 màn hình, không cuộn trang: section cao đúng bằng
-  // viewport trừ tiêu đề trang + BottomNav (h-[calc(100dvh-11rem)]), bên
-  // trong chia 2 vùng cuộn riêng (lưới dịch vụ / dòng bill), còn tiêu đề,
-  // tổng tiền và nút Xác nhận luôn nhìn thấy. Trang Bán hàng được nới rộng
-  // gần hết màn hình nhờ App.tsx bỏ max-w-3xl ở route /ban-hang.
+  // viewport trừ TopNav (3.5rem + safe-area trên) + tiêu đề trang + padding
+  // (h-[calc(100dvh-8.5rem-env(safe-area-inset-top))]), bên trong chia 2 vùng
+  // cuộn riêng (lưới dịch vụ / dòng bill), còn tiêu đề, tổng tiền và nút
+  // Xác nhận luôn nhìn thấy. Trang Bán hàng được nới rộng gần hết màn hình
+  // nhờ App.tsx bỏ max-w-3xl ở route /ban-hang.
   const posInputCls =
     "h-9 w-full rounded-lg border border-border bg-white px-2.5 text-sm text-ink placeholder:text-muted hover:border-tint-300 focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/20 disabled:cursor-not-allowed disabled:bg-tint-50 disabled:opacity-60";
 
   return (
-    <section className="flex h-[calc(100dvh-11rem)] flex-col overflow-hidden rounded-lg border border-border bg-white p-2 shadow-soft sm:p-3">
+    <section className="flex h-[calc(100dvh-8.5rem-env(safe-area-inset-top))] flex-col overflow-hidden rounded-lg border border-border bg-white p-2 shadow-soft sm:p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
         <h2 className="flex items-center gap-2 text-base font-semibold text-ink">
           <ShoppingBag className="h-5 w-5 shrink-0 text-navy" aria-hidden="true" />
@@ -521,13 +522,28 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
                 const price = n(sv, "priceVnd", "price_vnd");
                 const catName = s(sv, "categoryName", "category_name");
                 const SvcIcon = iconForService(s(sv, "name"), catName);
+                // Ô đã chọn (đã có trong bill): sáng hơn, viền Navy đậm + badge
+                // số lượng ở góc phải-trên của ô; chạm lại tăng số lượng thì
+                // badge cập nhật theo, xóa khỏi bill thì hết sáng.
+                const qty = lines.find((l) => l.refId === idOf(sv))?.quantity ?? 0;
+                const selected = qty > 0;
                 return (
                   <button
                     key={idOf(sv)}
                     type="button"
                     onClick={() => addToBill(sv)}
-                    className={`flex min-h-[48px] items-center gap-1.5 rounded-lg border px-1.5 py-1 text-left transition-colors hover:opacity-80 active:opacity-60 ${tintFor(catName)}`}
+                    aria-pressed={selected}
+                    className={`relative flex min-h-[48px] items-center gap-1.5 rounded-lg border px-1.5 py-1 text-left transition-colors hover:opacity-80 active:opacity-60 ${
+                      selected
+                        ? "border-2 border-navy bg-tint-100 text-navy shadow-md"
+                        : tintFor(catName)
+                    }`}
                   >
+                    {selected ? (
+                      <span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-navy px-1 text-[11px] font-bold leading-none text-white shadow">
+                        ×{qty}
+                      </span>
+                    ) : null}
                     <SvcIcon className="h-4 w-4 shrink-0 opacity-80" aria-hidden="true" />
                     <span className="min-w-0 flex-1">
                       <span className="block text-xs font-semibold leading-tight line-clamp-2">{s(sv, "name")}</span>
