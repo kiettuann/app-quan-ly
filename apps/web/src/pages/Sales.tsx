@@ -1,23 +1,43 @@
-// Bán hàng / POS — UX_FLOWS.md §2.3/§5: danh sách hóa đơn, tạo hóa đơn
-// (khách + dòng dịch vụ/sản phẩm + giảm giá/phụ phí), tổng tiền CHỈ lấy từ
-// server trả về, thu tiền, hoàn tiền, tạo hóa đơn từ lịch hoàn thành.
+// Bán hàng / POS — UX_FLOWS.md §2.3/§5: POS tại quầy (chọn dịch vụ, bill,
+// chiết khấu, thu tiền ngay), rồi danh sách hóa đơn, chi tiết hóa đơn
+// (thu tiền / hoàn tiền), tạo hóa đơn từ lịch hoàn thành.
+// Tổng tiền CHỈ lấy từ server trả về: giá mỗi dòng sửa trên bill chỉ là
+// tạm tính, máy chủ tính lại theo giá niêm yết khi tạo hóa đơn.
 // Nút "Thu tiền cọc" chỉ hiện "Sắp ra mắt", không làm gì khác.
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiPage, formatDateTime, formatVnd, get, post } from "../lib/api.js";
 import { INVOICE_STATUS_LABEL, arr, idOf, n, s } from "../lib/types.js";
 import type { Row } from "../lib/types.js";
 import {
   Badge, badgeToneForStatus, btnDanger, btnPrimary, btnSecondary, Card, Empty, ErrorBox,
-  Field, Loading, Notice, errMsg, inputCls,
+  Field, Loading, Notice, errMsg, inputCls, textareaCls, useDebounce,
 } from "../lib/ui.js";
 
-interface Line {
-  itemType: "service" | "product";
+/** Bỏ dấu tiếng Việt để tìm kiếm không phân biệt dấu. */
+function norm(str: string): string {
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase();
+}
+
+/** Màu nhạt theo nhóm dịch vụ: Nail xanh, Gội hồng, Mi đào (chỉ tint nhẹ). */
+function tintFor(categoryName: string): string {
+  const c = norm(categoryName);
+  if (c.includes("goi")) return "border-[#EFC9D8] bg-[#FDF0F5] text-[#8A4B63]";
+  if (c.includes("mi")) return "border-[#F0DCC3] bg-[#FDF3E7] text-[#8A5A2B]";
+  return "border-[#C9DCEC] bg-[#EBF3FA] text-[#2C5A86]";
+}
+
+interface PosLine {
   refId: string;
   name: string;
+  /** Giá sửa trên bill — chỉ là tạm tính, máy chủ tính lại theo giá niêm yết. */
+  unitPriceVnd: number;
   quantity: number;
-  technicianId: string;
 }
 
 export default function SalesPage() {
@@ -66,6 +86,13 @@ export default function SalesPage() {
       </div>
       {notice ? <Notice kind={notice.kind} text={notice.text} onClose={() => setNotice(null)} /> : null}
 
+      <PosTerminal
+        onInvoiceCreated={(inv) => {
+          setSelectedId(idOf(inv));
+          void qc.invalidateQueries({ queryKey: ["invoices"] });
+        }}
+      />
+
       <button
         type="button"
         onClick={() => setNotice({ kind: "info", text: "Tính năng đặt cọc / thanh toán online sắp ra mắt." })}
@@ -80,13 +107,6 @@ export default function SalesPage() {
           completedLoading={completedQ.isLoading}
           onFromBooking={(id) => fromBookingMut.mutate(id)}
           fromBookingPending={fromBookingMut.isPending}
-          onDone={(inv) => {
-            setNotice({ kind: "success", text: `Đã tạo hóa đơn. Tổng tiền: ${formatVnd(n(inv, "totalVnd", "total_vnd"))} (theo máy chủ).` });
-            setSelectedId(idOf(inv));
-            setShowCreate(false);
-            void qc.invalidateQueries({ queryKey: ["invoices"] });
-          }}
-          onError={(msg) => setNotice({ kind: "error", text: msg })}
         />
       ) : null}
 
@@ -143,6 +163,486 @@ export default function SalesPage() {
         />
       ) : null}
     </main>
+  );
+}
+
+function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => void }) {
+  const qc = useQueryClient();
+  const [catId, setCatId] = useState("");
+  const [search, setSearch] = useState("");
+  const [showAdd, setShowAdd] = useState(false);
+  const [addForm, setAddForm] = useState({ name: "", categoryId: "", priceVnd: "", durationMinutes: "30" });
+  const [addError, setAddError] = useState<string | null>(null);
+
+  const [lines, setLines] = useState<PosLine[]>([]);
+  const [customerName, setCustomerName] = useState("");
+  const [pickedCustomer, setPickedCustomer] = useState<{ id: string; name: string } | null>(null);
+  const [showCustomerSearch, setShowCustomerSearch] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState("");
+  const debouncedCustomerSearch = useDebounce(customerSearch, 400);
+  const [technicianId, setTechnicianId] = useState("");
+  const [note, setNote] = useState("");
+  const [branchId, setBranchId] = useState("");
+  const [discountOn, setDiscountOn] = useState(false);
+  const [discountPct, setDiscountPct] = useState(5);
+  const [method, setMethod] = useState<"cash" | "bank_transfer">("bank_transfer");
+  const [posNotice, setPosNotice] = useState<{ kind: "success" | "error"; text: string } | null>(null);
+  const [confirming, setConfirming] = useState(false);
+
+  const branchesQ = useQuery({
+    queryKey: ["branches"],
+    queryFn: () => apiPage<Row>("/api/v1/branches?limit=100").then((r) => r.items),
+  });
+  const catsQ = useQuery({
+    queryKey: ["service-categories"],
+    queryFn: () => apiPage<Row>("/api/v1/service-categories?limit=100").then((r) => r.items),
+  });
+  const servicesQ = useQuery({
+    queryKey: ["services", "pos"],
+    queryFn: () => apiPage<Row>("/api/v1/services?status=active&limit=100").then((r) => r.items),
+  });
+  const employeesQ = useQuery({
+    queryKey: ["employees", "all"],
+    queryFn: () => apiPage<Row>("/api/v1/employees?limit=100").then((r) => r.items),
+  });
+  const customersQ = useQuery({
+    queryKey: ["customers", "pos-search", debouncedCustomerSearch],
+    queryFn: () =>
+      apiPage<Row>(`/api/v1/customers?search=${encodeURIComponent(debouncedCustomerSearch)}&limit=20`).then((r) => r.items),
+    enabled: showCustomerSearch && debouncedCustomerSearch.trim().length >= 1,
+  });
+
+  const branches = branchesQ.data ?? [];
+  const categories = catsQ.data ?? [];
+  const services = servicesQ.data ?? [];
+  const employees = employeesQ.data ?? [];
+  // Chỉ 1 chi nhánh thì dùng luôn, khỏi bắt chọn.
+  const resolvedBranchId = branches.length === 1 ? idOf(branches[0]) : branchId;
+
+  const filteredServices = useMemo(() => {
+    const q = norm(search.trim());
+    return services.filter((sv) => {
+      if (catId) {
+        const cat = categories.find((c) => idOf(c) === catId);
+        const svCatId = s(sv, "categoryId", "category_id");
+        const svCatName = s(sv, "categoryName", "category_name");
+        if (svCatId) {
+          if (svCatId !== catId) return false;
+        } else if (cat && svCatName !== s(cat, "name")) {
+          return false;
+        }
+      }
+      if (q && !norm(s(sv, "name")).includes(q)) return false;
+      return true;
+    });
+  }, [services, catId, categories, search]);
+
+  const addServiceMut = useMutation({
+    mutationFn: (body: Record<string, unknown>) => post<Row>("/api/v1/services", body),
+    onSuccess: () => {
+      setPosNotice({ kind: "success", text: "Đã thêm dịch vụ." });
+      setShowAdd(false);
+      setAddForm({ name: "", categoryId: "", priceVnd: "", durationMinutes: "30" });
+      setAddError(null);
+      void qc.invalidateQueries({ queryKey: ["services"] });
+    },
+    onError: (err) => setAddError(errMsg(err)),
+  });
+
+  function addToBill(sv: Row) {
+    const refId = idOf(sv);
+    setLines((prev) => {
+      const i = prev.findIndex((l) => l.refId === refId);
+      if (i >= 0) {
+        const cur = prev[i];
+        if (!cur) return prev;
+        const next = [...prev];
+        next[i] = { ...cur, quantity: cur.quantity + 1 };
+        return next;
+      }
+      return [...prev, { refId, name: s(sv, "name"), unitPriceVnd: n(sv, "priceVnd", "price_vnd"), quantity: 1 }];
+    });
+  }
+
+  function clearBill() {
+    setLines([]);
+    setCustomerName("");
+    setPickedCustomer(null);
+    setShowCustomerSearch(false);
+    setCustomerSearch("");
+    setTechnicianId("");
+    setNote("");
+    setDiscountOn(false);
+    setDiscountPct(5);
+  }
+
+  const subtotal = lines.reduce((sum, l) => sum + l.unitPriceVnd * l.quantity, 0);
+  const discountVnd = discountOn ? Math.round((subtotal * discountPct) / 100) : 0;
+  const total = Math.max(0, subtotal - discountVnd);
+
+  function submitAddService() {
+    setAddError(null);
+    if (!addForm.name.trim()) return setAddError("Vui lòng nhập tên dịch vụ.");
+    if (addForm.priceVnd === "" || Number(addForm.priceVnd) < 0) return setAddError("Giá phải là số >= 0.");
+    const dur = Number(addForm.durationMinutes);
+    if (!Number.isInteger(dur) || dur < 5 || dur > 480) return setAddError("Thời lượng phải từ 5 đến 480 phút.");
+    addServiceMut.mutate({
+      categoryId: addForm.categoryId || undefined,
+      name: addForm.name.trim(),
+      priceVnd: Number(addForm.priceVnd),
+      durationMinutes: dur,
+      status: "active",
+    });
+  }
+
+  async function confirmBill() {
+    setPosNotice(null);
+    if (lines.length === 0) return setPosNotice({ kind: "error", text: "Bill chưa có dịch vụ nào. Chạm vào một dịch vụ để thêm." });
+    if (branches.length === 0) return setPosNotice({ kind: "error", text: "Chưa có chi nhánh nào — hãy tạo chi nhánh trước." });
+    if (branches.length > 1 && !branchId) return setPosNotice({ kind: "error", text: "Vui lòng chọn chi nhánh." });
+    setConfirming(true);
+    try {
+      // Khách hàng: ưu tiên khách quen đã chọn; nếu không, dùng khách lẻ
+      // (tên đúng "Khách lẻ") — tên gõ tay mà không chọn thì không dùng được
+      // vì API cần customer id.
+      let customerId: string;
+      let typedNameNote = "";
+      if (pickedCustomer) {
+        customerId = pickedCustomer.id;
+      } else {
+        const walkIn = await apiPage<Row>("/api/v1/customers?search=Kh%C3%A1ch%20l%E1%BA%BB&limit=20")
+          .then((r) => r.items)
+          .then((list) => list.find((c) => s(c, "fullName", "full_name") === "Khách lẻ"));
+        if (!walkIn) {
+          setPosNotice({ kind: "error", text: "Chưa có khách lẻ — hãy tạo khách hàng tên 'Khách lẻ' trong mục Khách hàng." });
+          return;
+        }
+        customerId = idOf(walkIn);
+        if (customerName.trim()) {
+          typedNameNote = ` Tên đã nhập "${customerName.trim()}" chưa được chọn từ danh sách khách quen nên bill được tính cho Khách lẻ.`;
+        }
+      }
+      const inv = await post<Row>("/api/v1/invoices", {
+        branchId: resolvedBranchId,
+        customerId,
+        items: lines.map((l) => ({
+          itemType: "service",
+          refId: l.refId,
+          name: l.name,
+          quantity: l.quantity,
+          technicianId: technicianId || undefined,
+        })),
+        discountVnd,
+        surchargeVnd: 0,
+      });
+      const invoiceNo = s(inv, "invoiceNumber", "invoice_number", "code") || idOf(inv).slice(0, 8);
+      const serverTotal = n(inv, "totalVnd", "total_vnd");
+      if (serverTotal > 0) {
+        try {
+          await post<Row>(`/api/v1/invoices/${idOf(inv)}/payments`, {
+            amountVnd: serverTotal,
+            method,
+            note: note.trim() || undefined,
+          });
+        } catch (payErr) {
+          // Hóa đơn đã tạo xong, chỉ thu tiền thất bại: giữ nguyên bill để
+          // thu lại từ chi tiết hóa đơn, không xóa bill.
+          onInvoiceCreated(inv);
+          setPosNotice({
+            kind: "error",
+            text: `Đã tạo hóa đơn ${invoiceNo} nhưng chưa ghi nhận được thanh toán (${errMsg(payErr)}). Hóa đơn đang ở trạng thái chưa thanh toán — mở chi tiết hóa đơn để thu tiền lại.`,
+          });
+          return;
+        }
+      }
+      clearBill();
+      onInvoiceCreated(inv);
+      setPosNotice({
+        kind: "success",
+        text:
+          serverTotal > 0
+            ? `Đã tạo hóa đơn ${invoiceNo}. Tổng tiền theo máy chủ: ${formatVnd(serverTotal)} — đã thu đủ (${method === "bank_transfer" ? "chuyển khoản" : "tiền mặt"}).${typedNameNote}`
+            : `Đã tạo hóa đơn ${invoiceNo} với tổng tiền 0đ (các dòng chưa có giá) nên chưa ghi nhận thanh toán.${typedNameNote}`,
+      });
+    } catch (err) {
+      setPosNotice({ kind: "error", text: errMsg(err) });
+    } finally {
+      setConfirming(false);
+    }
+  }
+
+  return (
+    <section className="rounded-lg border border-border bg-white p-4 shadow-soft">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h2 className="text-base font-semibold text-ink">Bán hàng tại quầy</h2>
+        {servicesQ.isLoading ? <span className="text-xs text-[#748294]">Đang tải dịch vụ...</span> : null}
+      </div>
+      {posNotice ? <div className="mb-3"><Notice kind={posNotice.kind} text={posNotice.text} onClose={() => setPosNotice(null)} /></div> : null}
+      <div className="grid gap-4 xl:grid-cols-2">
+        {/* Trái: chọn dịch vụ */}
+        <div>
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Lọc theo nhóm dịch vụ">
+            <button type="button" onClick={() => setCatId("")} className={catId === "" ? btnPrimary : btnSecondary}>
+              Tất cả
+            </button>
+            {categories.map((c) => (
+              <button key={idOf(c)} type="button" onClick={() => setCatId(idOf(c))} className={catId === idOf(c) ? btnPrimary : btnSecondary}>
+                {s(c, "name")}
+              </button>
+            ))}
+          </div>
+          {catsQ.isError ? <p className="mt-2 text-sm text-[#C0392B]">Không tải được nhóm dịch vụ: {errMsg(catsQ.error)}</p> : null}
+          <div className="mt-3 flex gap-2">
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Tìm dịch vụ"
+              aria-label="Tìm dịch vụ"
+              className={`${inputCls} min-w-0 flex-1`}
+            />
+            <button type="button" onClick={() => { setShowAdd((v) => !v); setAddError(null); }} aria-label="Thêm dịch vụ mới" className={`${btnSecondary} shrink-0 px-3 text-lg font-bold`}>
+              +
+            </button>
+          </div>
+          {showAdd ? (
+            <div className="mt-3 space-y-3 rounded-lg border border-[#E5E9ED] bg-[#F2F6F9] p-3">
+              <p className="text-sm font-medium">Thêm dịch vụ mới</p>
+              <Field label="Tên dịch vụ">
+                <input value={addForm.name} onChange={(e) => setAddForm((f) => ({ ...f, name: e.target.value }))} placeholder="vd: Sơn gel" className={inputCls} />
+              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Nhóm dịch vụ">
+                  <select value={addForm.categoryId} onChange={(e) => setAddForm((f) => ({ ...f, categoryId: e.target.value }))} className={inputCls}>
+                    <option value="">— Không nhóm —</option>
+                    {categories.map((c) => (
+                      <option key={idOf(c)} value={idOf(c)}>{s(c, "name")}</option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Thời lượng (phút)">
+                  <input type="number" inputMode="numeric" min={5} max={480} value={addForm.durationMinutes} onChange={(e) => setAddForm((f) => ({ ...f, durationMinutes: e.target.value }))} className={inputCls} />
+                </Field>
+              </div>
+              <Field label="Giá (VND)">
+                <input type="number" inputMode="numeric" min={0} value={addForm.priceVnd} onChange={(e) => setAddForm((f) => ({ ...f, priceVnd: e.target.value }))} placeholder="0" className={inputCls} />
+              </Field>
+              {addError ? <p role="alert" className="text-sm text-[#C0392B]">{addError}</p> : null}
+              <button type="button" onClick={submitAddService} disabled={addServiceMut.isPending} className={`${btnPrimary} w-full`}>
+                {addServiceMut.isPending ? "Đang xử lý..." : "Thêm dịch vụ"}
+              </button>
+            </div>
+          ) : null}
+          {servicesQ.isLoading ? (
+            <div className="mt-3"><Loading /></div>
+          ) : servicesQ.isError ? (
+            <div className="mt-3"><ErrorBox message={errMsg(servicesQ.error)} onRetry={() => void servicesQ.refetch()} /></div>
+          ) : filteredServices.length === 0 ? (
+            <p className="mt-3 text-sm text-[#748294]">Không tìm thấy dịch vụ nào.</p>
+          ) : (
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
+              {filteredServices.map((sv) => {
+                const price = n(sv, "priceVnd", "price_vnd");
+                return (
+                  <button
+                    key={idOf(sv)}
+                    type="button"
+                    onClick={() => addToBill(sv)}
+                    className={`flex min-h-[56px] flex-col items-center justify-center gap-0.5 rounded-lg border px-2 py-2 text-center transition-colors hover:opacity-80 active:opacity-60 ${tintFor(s(sv, "categoryName", "category_name"))}`}
+                  >
+                    <span className="text-sm font-semibold leading-snug">{s(sv, "name")}</span>
+                    {price > 0 ? (
+                      <span className="text-xs tabular-nums opacity-80">{formatVnd(price)}</span>
+                    ) : (
+                      <span className="text-xs text-[#748294]">Chưa có giá</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Phải: bill của khách */}
+        <div className="rounded-lg border border-[#E5E9ED] bg-[#F7F7F5] p-3">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-base font-semibold text-ink">Bill của khách</h3>
+            <button type="button" onClick={clearBill} className="min-h-[44px] px-2 text-sm font-semibold text-[#C0392B]">
+              Xoá hết
+            </button>
+          </div>
+          {branches.length > 1 ? (
+            <div className="mt-2">
+              <Field label="Chi nhánh">
+                <select value={branchId} onChange={(e) => setBranchId(e.target.value)} className={inputCls}>
+                  <option value="">— Chọn chi nhánh —</option>
+                  {branches.map((b) => (
+                    <option key={idOf(b)} value={idOf(b)}>{s(b, "name")}</option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+          ) : null}
+          <div className="mt-2 grid gap-3 sm:grid-cols-2">
+            <Field label="Tên khách">
+              <div className="flex gap-2">
+                <input
+                  value={customerName}
+                  onChange={(e) => { setCustomerName(e.target.value); setPickedCustomer(null); }}
+                  placeholder="Không bắt buộc"
+                  aria-label="Tên khách"
+                  className={`${inputCls} min-w-0 flex-1`}
+                />
+                <button type="button" onClick={() => setShowCustomerSearch((v) => !v)} className={`${btnSecondary} shrink-0`}>
+                  Khách quen
+                </button>
+              </div>
+            </Field>
+            <Field label="Tên thợ">
+              <select value={technicianId} onChange={(e) => setTechnicianId(e.target.value)} className={inputCls}>
+                <option value="">— Chọn thợ —</option>
+                {employees.map((em) => (
+                  <option key={idOf(em)} value={idOf(em)}>{s(em, "fullName", "full_name")}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
+          {pickedCustomer ? (
+            <p className="mt-2 text-sm">
+              Đã chọn khách quen: <span className="font-medium">{pickedCustomer.name}</span>{" "}
+              <button type="button" onClick={() => { setPickedCustomer(null); setCustomerName(""); }} className="font-semibold text-[#C0392B]">Bỏ chọn</button>
+            </p>
+          ) : null}
+          {showCustomerSearch ? (
+            <div className="mt-2 space-y-2 rounded-lg border border-[#E5E9ED] bg-white p-3">
+              <input
+                value={customerSearch}
+                onChange={(e) => setCustomerSearch(e.target.value)}
+                placeholder="Tìm khách quen theo tên / SĐT"
+                aria-label="Tìm khách quen"
+                className={inputCls}
+              />
+              {customersQ.isLoading ? (
+                <p className="text-sm text-[#748294]">Đang tìm...</p>
+              ) : (customersQ.data ?? []).length === 0 ? (
+                <p className="text-sm text-[#748294]">{debouncedCustomerSearch.trim() ? "Không tìm thấy khách nào." : "Nhập tên hoặc SĐT để tìm khách quen."}</p>
+              ) : (
+                <ul className="space-y-1">
+                  {(customersQ.data ?? []).map((c) => (
+                    <li key={idOf(c)}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPickedCustomer({ id: idOf(c), name: s(c, "fullName", "full_name") });
+                          setCustomerName(s(c, "fullName", "full_name"));
+                          setShowCustomerSearch(false);
+                          setCustomerSearch("");
+                        }}
+                        className="block w-full rounded-lg border border-[#E5E9ED] p-2 text-left text-sm hover:bg-[#F2F6F9]"
+                      >
+                        {s(c, "fullName", "full_name")} · {s(c, "phone")}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ) : null}
+          <div className="mt-2">
+            <Field label="Ghi chú">
+              <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="Ghi chú cho bill (không bắt buộc)" className={textareaCls} />
+            </Field>
+          </div>
+
+          {lines.length === 0 ? (
+            <p className="mt-3 text-sm text-[#748294]">Chạm vào một dịch vụ để thêm vào bill.</p>
+          ) : (
+            <ul className="mt-3 space-y-2">
+              {lines.map((l, i) => (
+                <li key={l.refId} className="flex flex-wrap items-center gap-2 border-b border-[#E5E9ED] pb-2 text-sm">
+                  <span className="min-w-[120px] flex-1 font-medium">{l.name}</span>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    value={l.unitPriceVnd}
+                    aria-label={`Giá ${l.name} (VND)`}
+                    onChange={(e) => {
+                      const v = Math.max(0, Number(e.target.value) || 0);
+                      setLines((prev) => prev.map((x, j) => (j === i ? { ...x, unitPriceVnd: v } : x)));
+                    }}
+                    className="h-10 w-24 rounded-lg border border-[#E5E9ED] bg-white px-2 text-right text-sm tabular-nums focus:border-blue focus:outline-none"
+                  />
+                  <span aria-hidden="true" className="text-[#748294]">×</span>
+                  <span className="flex items-center gap-1">
+                    <button type="button" aria-label={`Giảm số lượng ${l.name}`} onClick={() => setLines((prev) => prev.map((x, j) => (j === i ? { ...x, quantity: Math.max(1, x.quantity - 1) } : x)))} className="flex h-10 w-10 items-center justify-center rounded-md border border-[#E5E9ED] bg-white text-base font-bold">−</button>
+                    <span className="w-6 text-center tabular-nums">{l.quantity}</span>
+                    <button type="button" aria-label={`Tăng số lượng ${l.name}`} onClick={() => setLines((prev) => prev.map((x, j) => (j === i ? { ...x, quantity: x.quantity + 1 } : x)))} className="flex h-10 w-10 items-center justify-center rounded-md border border-[#E5E9ED] bg-white text-base font-bold">+</button>
+                  </span>
+                  <span aria-hidden="true" className="text-[#748294]">=</span>
+                  <span className="w-20 text-right font-semibold tabular-nums text-[#244B70]">{formatVnd(l.unitPriceVnd * l.quantity)}</span>
+                  <button type="button" aria-label={`Xóa ${l.name} khỏi bill`} onClick={() => setLines((prev) => prev.filter((_, j) => j !== i))} className="flex h-10 w-8 items-center justify-center font-bold text-[#C0392B]">×</button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <div className={`mt-3 flex items-center justify-between gap-2 rounded-lg border border-[#E5E9ED] bg-soft-warning px-3 py-2 ${discountOn ? "" : "opacity-40"}`}>
+            <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-sm font-medium">
+              <input
+                type="checkbox"
+                checked={discountOn}
+                onChange={(e) => setDiscountOn(e.target.checked)}
+                className="h-5 w-5 accent-[#244B70]"
+              />
+              Chiết khấu
+            </label>
+            <span className="flex items-center gap-2">
+              <select
+                value={discountPct}
+                disabled={!discountOn}
+                onChange={(e) => setDiscountPct(Number(e.target.value))}
+                aria-label="Tỉ lệ chiết khấu"
+                className="h-10 rounded-lg border border-[#E5E9ED] bg-white px-2 text-sm"
+              >
+                {[0, 5, 10, 15, 20].map((p) => (
+                  <option key={p} value={p}>{p}%</option>
+                ))}
+              </select>
+              <span className="text-sm font-semibold tabular-nums text-[#B7791F]">− {formatVnd(discountVnd)}</span>
+            </span>
+          </div>
+
+          <fieldset className="mt-3 rounded-lg border border-[#E5E9ED] bg-tint-50 p-3">
+            <legend className="sr-only">Phương thức thanh toán</legend>
+            <div className="flex flex-wrap gap-4 text-sm">
+              <label className="flex min-h-[44px] cursor-pointer items-center gap-2">
+                <input type="radio" name="pos-method" checked={method === "bank_transfer"} onChange={() => setMethod("bank_transfer")} className="h-5 w-5 accent-[#244B70]" />
+                Chuyển khoản
+              </label>
+              <label className="flex min-h-[44px] cursor-pointer items-center gap-2">
+                <input type="radio" name="pos-method" checked={method === "cash"} onChange={() => setMethod("cash")} className="h-5 w-5 accent-[#244B70]" />
+                Tiền mặt
+              </label>
+            </div>
+          </fieldset>
+
+          <dl className="mt-3 space-y-1 text-sm tabular-nums">
+            <div className="flex items-center justify-between gap-2">
+              <dt className="text-[#748294]">Tạm tính</dt>
+              <dd className="font-semibold">{formatVnd(subtotal)}</dd>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <dt className="font-medium">Khách thanh toán</dt>
+              <dd className="text-xl font-bold text-[#244B70]">{formatVnd(total)}</dd>
+            </div>
+          </dl>
+          <p className="mt-1 text-xs text-[#748294]">Giá mỗi dòng chỉ là tạm tính — tổng cuối theo giá niêm yết trên máy chủ.</p>
+          <button type="button" onClick={() => void confirmBill()} disabled={confirming || lines.length === 0} className={`${btnPrimary} mt-3 min-h-[52px] w-full text-base`}>
+            {confirming ? "Đang xử lý..." : "Xác nhận bill"}
+          </button>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -276,81 +776,15 @@ function InvoiceDetail({
 }
 
 function CreateInvoiceForm({
-  completedBookings, completedLoading, onFromBooking, fromBookingPending, onDone, onError,
+  completedBookings, completedLoading, onFromBooking, fromBookingPending,
 }: {
   completedBookings: Row[];
   completedLoading: boolean;
   onFromBooking: (id: string) => void;
   fromBookingPending: boolean;
-  onDone: (inv: Row) => void;
-  onError: (msg: string) => void;
 }) {
-  const [branchId, setBranchId] = useState("");
-  const [customerId, setCustomerId] = useState("");
-  const [search, setSearch] = useState("");
-  const [lines, setLines] = useState<Line[]>([]);
-  const [discount, setDiscount] = useState("");
-  const [surcharge, setSurcharge] = useState("");
-  const [formError, setFormError] = useState<string | null>(null);
-  const [pickType, setPickType] = useState<"service" | "product">("service");
-  const [pickId, setPickId] = useState("");
-  const [pickQty, setPickQty] = useState("1");
-
-  const branchesQ = useQuery({
-    queryKey: ["branches"],
-    queryFn: () => apiPage<Row>("/api/v1/branches?limit=100").then((r) => r.items),
-  });
-  const customersQ = useQuery({
-    queryKey: ["customers", "pos", search],
-    queryFn: () => apiPage<Row>(`/api/v1/customers?search=${encodeURIComponent(search)}&limit=20`).then((r) => r.items),
-    enabled: search.trim().length >= 2,
-  });
-  const servicesQ = useQuery({
-    queryKey: ["services", "pos"],
-    queryFn: () => apiPage<Row>("/api/v1/services?status=active&limit=100").then((r) => r.items),
-  });
-  const productsQ = useQuery({
-    queryKey: ["products", "pos"],
-    queryFn: () => apiPage<Row>("/api/v1/products?status=active&limit=100").then((r) => r.items),
-  });
-  const createMut = useMutation({
-    mutationFn: (body: Record<string, unknown>) => post<Row>("/api/v1/invoices", body),
-    onSuccess: (data) => onDone(data),
-    onError: (err) => onError(errMsg(err)),
-  });
-
-  function addLine() {
-    const source = pickType === "service" ? (servicesQ.data ?? []) : (productsQ.data ?? []);
-    const item = source.find((x) => idOf(x) === pickId);
-    if (!item) return setFormError("Vui lòng chọn dịch vụ hoặc sản phẩm.");
-    const qty = Number(pickQty);
-    if (!Number.isInteger(qty) || qty < 1) return setFormError("Số lượng phải là số nguyên từ 1 trở lên.");
-    setLines((prev) => [...prev, { itemType: pickType, refId: idOf(item), name: s(item, "name"), quantity: qty, technicianId: "" }]);
-    setPickId("");
-    setFormError(null);
-  }
-
-  function submit() {
-    setFormError(null);
-    if (!branchId) return setFormError("Vui lòng chọn chi nhánh.");
-    if (lines.length === 0) return setFormError("Hóa đơn phải có ít nhất 1 dòng.");
-    createMut.mutate({
-      branchId,
-      customerId: customerId || undefined,
-      items: lines.map((l) => ({
-        itemType: l.itemType,
-        refId: l.refId,
-        name: l.name,
-        quantity: l.quantity,
-        technicianId: l.technicianId || undefined,
-      })),
-      discountVnd: discount ? Number(discount) : 0,
-      surchargeVnd: surcharge ? Number(surcharge) : 0,
-    });
-  }
-
   return (
-    <Card title="Tạo hóa đơn">
+    <Card title="Tạo hóa đơn từ lịch hẹn">
       <div className="space-y-4">
         <div>
           <p className="text-sm font-medium">Tạo hóa đơn từ lịch hoàn thành</p>
@@ -373,71 +807,7 @@ function CreateInvoiceForm({
             </ul>
           )}
         </div>
-        <Field label="Chi nhánh">
-          <select value={branchId} onChange={(e) => setBranchId(e.target.value)} className={inputCls}>
-            <option value="">— Chọn chi nhánh —</option>
-            {(branchesQ.data ?? []).map((b) => (
-              <option key={idOf(b)} value={idOf(b)}>{s(b, "name")}</option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Khách hàng (tìm theo tên / SĐT, không bắt buộc)">
-          <input value={search} onChange={(e) => { setSearch(e.target.value); setCustomerId(""); }} placeholder="Nhập ít nhất 2 ký tự để tìm" className={inputCls} />
-          {customersQ.data && customersQ.data.length > 0 ? (
-            <select value={customerId} onChange={(e) => setCustomerId(e.target.value)} className={inputCls}>
-              <option value="">— Khách lẻ —</option>
-              {customersQ.data.map((c) => (
-                <option key={idOf(c)} value={idOf(c)}>{s(c, "fullName", "full_name")} · {s(c, "phone")}</option>
-              ))}
-            </select>
-          ) : null}
-        </Field>
-        <div>
-          <p className="text-sm font-medium">Thêm dòng</p>
-          <div className="mt-1 grid grid-cols-2 gap-2">
-            <select value={pickType} onChange={(e) => { setPickType(e.target.value as "service" | "product"); setPickId(""); }} className={`${inputCls} min-w-0`}>
-              <option value="service">Dịch vụ</option>
-              <option value="product">Sản phẩm</option>
-            </select>
-            <select value={pickId} onChange={(e) => setPickId(e.target.value)} className={`${inputCls} min-w-0`}>
-              <option value="">— Chọn —</option>
-              {(pickType === "service" ? (servicesQ.data ?? []) : (productsQ.data ?? [])).map((x) => (
-                <option key={idOf(x)} value={idOf(x)}>
-                  {s(x, "name")} · {formatVnd(n(x, pickType === "service" ? "priceVnd" : "sellPriceVnd", pickType === "service" ? "price_vnd" : "sell_price_vnd"))}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="mt-2 flex gap-2">
-            <input type="number" inputMode="numeric" min={1} value={pickQty} onChange={(e) => setPickQty(e.target.value)} aria-label="Số lượng" className={`${inputCls} min-w-0 flex-1`} />
-            <button type="button" onClick={addLine} className={`${btnSecondary} shrink-0`}>Thêm dòng</button>
-          </div>
-        </div>
-        {lines.length === 0 ? (
-          <p className="text-sm text-[#748294]">Chưa có dòng nào. Giá mỗi dòng lấy từ giá niêm yết; tổng tiền do máy chủ tính.</p>
-        ) : (
-          <ul className="space-y-2">
-            {lines.map((l, i) => (
-              <li key={i} className="flex items-center justify-between gap-2 rounded-lg border border-[#E5E9ED] p-3 text-sm">
-                <span className="min-w-0 flex-1 truncate">{l.itemType === "service" ? "Dịch vụ" : "Sản phẩm"}: {l.name} × {l.quantity}</span>
-                <button type="button" onClick={() => setLines((prev) => prev.filter((_, j) => j !== i))} className="min-h-[44px] shrink-0 px-2 text-[#C0392B]">Xóa</button>
-              </li>
-            ))}
-          </ul>
-        )}
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Giảm giá (VND)">
-            <input type="number" inputMode="numeric" min={0} value={discount} onChange={(e) => setDiscount(e.target.value)} placeholder="0" className={inputCls} />
-          </Field>
-          <Field label="Phụ phí (VND)">
-            <input type="number" inputMode="numeric" min={0} value={surcharge} onChange={(e) => setSurcharge(e.target.value)} placeholder="0" className={inputCls} />
-          </Field>
-        </div>
-        <p className="text-xs text-[#748294]">Tổng tiền sẽ do máy chủ tính sau khi tạo (tạm tính − giảm giá + phụ phí).</p>
-        {formError ? <p role="alert" className="text-sm text-[#C0392B]">{formError}</p> : null}
-        <button type="button" onClick={submit} disabled={createMut.isPending} className={`${btnPrimary} w-full`}>
-          {createMut.isPending ? "Đang xử lý..." : "Tạo hóa đơn"}
-        </button>
+        <p className="text-xs text-[#748294]">Muốn tạo hóa đơn thủ công, dùng POS ở trên: chọn dịch vụ, bấm “Xác nhận bill”.</p>
       </div>
     </Card>
   );
