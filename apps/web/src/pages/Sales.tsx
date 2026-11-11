@@ -4,20 +4,19 @@
 // Tổng tiền CHỈ lấy từ server trả về: giá mỗi dòng sửa trên bill chỉ là
 // tạm tính, máy chủ tính lại theo giá niêm yết khi tạo hóa đơn.
 // Nút "Thu tiền cọc" chỉ hiện "Sắp ra mắt", không làm gì khác.
-import { useMemo, useState } from "react";
-import type { ComponentType } from "react";
+import { useMemo, useRef, useState } from "react";
+import type { ComponentType, PointerEvent as ReactPointerEvent } from "react";
 import {
-  Banknote, Brush, Check, ChevronDown, Droplets, Eraser, Eye, Footprints, Gem, Hand,
-  Landmark, Layers, LayoutGrid, Paintbrush, Palette, Percent, Plus, Receipt, RefreshCw,
-  Scissors, Search, ShoppingBag, Smile, Sparkles, Sticker, StickyNote, Trash2,
-  UserRound, Users, Waves, X,
+  Banknote, Check, ChevronDown, Droplets, Eye, GripHorizontal, GripVertical,
+  Landmark, LayoutGrid, Percent, Plus, Receipt, Search, Sparkles,
+  StickyNote, Trash2, UserRound, Users, X,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiPage, formatDateTime, formatVnd, get, post } from "../lib/api.js";
 import { INVOICE_STATUS_LABEL, arr, idOf, n, s } from "../lib/types.js";
 import type { Row } from "../lib/types.js";
 import {
-  Badge, badgeToneForStatus, btnDanger, btnPrimary, btnSecondary, Card, Empty, ErrorBox,
+  Badge, badgeToneForStatus, btnDanger, btnPrimary, btnSecondary, Card, ErrorBox,
   Field, Loading, Notice, errMsg, inputCls, useDebounce,
 } from "../lib/ui.js";
 
@@ -50,31 +49,6 @@ function iconForCategory(categoryName: string): IconComponent {
   return LayoutGrid;
 }
 
-/** Icon theo tên dịch vụ — đoán theo từ khóa, nhỏ gọn, chỉ để nhận biết nhanh. */
-function iconForService(name: string, categoryName: string): IconComponent {
-  const c = norm(categoryName);
-  if (c.includes("mi")) return Eye;
-  if (c.includes("goi")) return Droplets;
-  const n = norm(name);
-  if (n.includes("uon mi")) return Eye;
-  if (n.includes("cat")) return Scissors;
-  if (n.includes("ve")) return Brush;
-  if (n.includes("son")) return Paintbrush;
-  if (n.includes("ombre")) return Palette;
-  if (n.includes("sticker")) return Sticker;
-  if (n.includes("loang") || n.includes("van")) return Waves;
-  if (n.includes("charm") || n.includes("xa cu") || n.includes("/ da") || n.endsWith("da")) return Gem;
-  if (n.includes("trang guong") || n.includes("guong")) return Sparkles;
-  if (n.includes("thao") || n.includes("tay")) return Eraser;
-  if (n.includes("noi") || n.includes("dap") || n.includes("up base")) return Layers;
-  if (n.includes("refill")) return RefreshCw;
-  if (n.includes("goi")) return Droplets;
-  if (n.includes("mat na")) return Smile;
-  if (n.includes("cha") || n.includes("got")) return Footprints;
-  if (n.includes("mat xa") || n.includes("massage")) return Hand;
-  return Sparkles;
-}
-
 interface PosLine {
   refId: string;
   name: string;
@@ -85,17 +59,10 @@ interface PosLine {
 
 export default function SalesPage() {
   const qc = useQueryClient();
-  const [status, setStatus] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [notice, setNotice] = useState<{ kind: "success" | "error" | "info"; text: string } | null>(null);
 
-  const params = new URLSearchParams({ limit: "50" });
-  if (status) params.set("status", status);
-  const invoicesQ = useQuery({
-    queryKey: ["invoices", status],
-    queryFn: () => apiPage<Row>(`/api/v1/invoices?${params.toString()}`).then((r) => r.items),
-  });
   const detailQ = useQuery({
     queryKey: ["invoice", selectedId],
     queryFn: () => get<Row>(`/api/v1/invoices/${selectedId ?? ""}`),
@@ -111,20 +78,17 @@ export default function SalesPage() {
     onSuccess: (data) => {
       setNotice({ kind: "success", text: "Đã tạo hóa đơn từ lịch hẹn." });
       setSelectedId(idOf(data as Row));
-      void qc.invalidateQueries({ queryKey: ["invoices"] });
     },
     onError: (err) => setNotice({ kind: "error", text: errMsg(err) }),
   });
 
-  const invoices = invoicesQ.data ?? [];
-  const selected = detailQ.data ?? invoices.find((i) => idOf(i) === selectedId) ?? null;
+  const selected = detailQ.data ?? null;
 
   return (
     <main className="space-y-4 p-4">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-xl font-bold">Bán hàng</h1>
+      <div className="flex items-center justify-end gap-2">
         <button type="button" onClick={() => setShowCreate((v) => !v)} className={btnPrimary}>
-          {showCreate ? "Đóng form" : "Tạo hóa đơn"}
+          Tạo hóa đơn
         </button>
       </div>
       {notice ? <Notice kind={notice.kind} text={notice.text} onClose={() => setNotice(null)} /> : null}
@@ -132,7 +96,6 @@ export default function SalesPage() {
       <PosTerminal
         onInvoiceCreated={(inv) => {
           setSelectedId(idOf(inv));
-          void qc.invalidateQueries({ queryKey: ["invoices"] });
         }}
       />
 
@@ -153,46 +116,6 @@ export default function SalesPage() {
         />
       ) : null}
 
-      <Field label="Lọc theo trạng thái">
-        <select value={status} onChange={(e) => setStatus(e.target.value)} className={inputCls}>
-          <option value="">Tất cả trạng thái</option>
-          {Object.entries(INVOICE_STATUS_LABEL).map(([v, l]) => (
-            <option key={v} value={v}>{l}</option>
-          ))}
-        </select>
-      </Field>
-
-      {invoicesQ.isLoading ? (
-        <Loading />
-      ) : invoicesQ.isError ? (
-        <ErrorBox message={errMsg(invoicesQ.error)} onRetry={() => void invoicesQ.refetch()} />
-      ) : invoices.length === 0 ? (
-        <Empty text="Chưa có hóa đơn nào." action={<button type="button" onClick={() => setShowCreate(true)} className={btnPrimary}>Tạo hóa đơn</button>} />
-      ) : (
-        <Card title={`${invoices.length} hóa đơn`}>
-          <ul className="space-y-3">
-            {invoices.map((inv) => (
-              <li key={idOf(inv)}>
-                <button type="button" onClick={() => setSelectedId(idOf(inv))} className="block w-full rounded-lg border border-[#E5E9ED] p-3 text-left">
-                  <span className="flex items-center justify-between gap-2">
-                    <span className="min-w-0 flex-1 truncate text-sm font-medium">{s(inv, "invoiceNumber", "invoice_number", "code") || `Hóa đơn ${idOf(inv).slice(0, 8)}`}</span>
-                    <span className="shrink-0">
-                      <Badge tone={badgeToneForStatus(s(inv, "status"))}>{INVOICE_STATUS_LABEL[s(inv, "status")] ?? s(inv, "status")}</Badge>
-                    </span>
-                  </span>
-                  <span className="mt-1 block text-xs text-[#748294]">
-                    {formatDateTime(s(inv, "createdAt", "created_at"))} · {s(inv, "customerName", "customer_name") || "Khách lẻ"}
-                  </span>
-                  <span className="mt-1 block text-sm font-semibold tabular-nums text-[#244B70]">
-                    {formatVnd(n(inv, "totalVnd", "total_vnd"))} · Đã thu {formatVnd(n(inv, "paidVnd", "paid_vnd"))}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
-
       {selectedId && selected ? (
         <InvoiceDetail
           invoice={selected}
@@ -200,7 +123,6 @@ export default function SalesPage() {
           onClose={() => setSelectedId(null)}
           onChanged={(msg, kind) => {
             setNotice({ kind, text: msg });
-            void qc.invalidateQueries({ queryKey: ["invoices"] });
             void qc.invalidateQueries({ queryKey: ["invoice", selectedId] });
           }}
         />
@@ -231,6 +153,42 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
   const [method, setMethod] = useState<"cash" | "bank_transfer">("bank_transfer");
   const [posNotice, setPosNotice] = useState<{ kind: "success" | "error"; text: string } | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [showNote, setShowNote] = useState(false);
+  // Thanh kéo giữa 2 panel: split = % chiều cao (mobile, xếp dọc) hoặc %
+  // chiều rộng (desktop, xếp ngang) dành cho panel dịch vụ; phần còn lại
+  // cho panel bill. Kéo bằng pointer events, kẹp trong khoảng an toàn để
+  // không panel nào bị ép về 0.
+  const posRef = useRef<HTMLDivElement>(null);
+  const dragPointerId = useRef<number | null>(null);
+  const [split, setSplit] = useState<number>(() =>
+    typeof window !== "undefined" && window.innerWidth >= 1024 ? 62 : 40,
+  );
+
+  function clampSplit(pct: number, horizontal: boolean): number {
+    const lo = horizontal ? 30 : 25;
+    const hi = horizontal ? 75 : 50;
+    return Math.min(hi, Math.max(lo, Math.round(pct)));
+  }
+
+  function onDividerPointerDown(e: ReactPointerEvent<HTMLDivElement>) {
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragPointerId.current = e.pointerId;
+  }
+
+  function onDividerPointerMove(e: ReactPointerEvent<HTMLDivElement>) {
+    if (dragPointerId.current === null || !posRef.current) return;
+    const rect = posRef.current.getBoundingClientRect();
+    const horizontal = window.innerWidth >= 1024;
+    const pct = horizontal
+      ? ((e.clientX - rect.left) / rect.width) * 100
+      : ((e.clientY - rect.top) / rect.height) * 100;
+    setSplit(clampSplit(pct, horizontal));
+  }
+
+  function onDividerPointerUp() {
+    dragPointerId.current = null;
+  }
 
   const branchesQ = useQuery({
     queryKey: ["branches"],
@@ -315,6 +273,7 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
     setCustomerSearch("");
     setTechnicianId("");
     setNote("");
+    setShowNote(false);
     setDiscountOn(false);
     setDiscountPct(5);
   }
@@ -405,7 +364,7 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
         text:
           serverTotal > 0
             ? `Đã tạo hóa đơn ${invoiceNo}. Tổng tiền theo máy chủ: ${formatVnd(serverTotal)} — đã thu đủ (${method === "bank_transfer" ? "chuyển khoản" : "tiền mặt"}).${typedNameNote}`
-            : `Đã tạo hóa đơn ${invoiceNo} với tổng tiền 0đ (các dòng chưa có giá) nên chưa ghi nhận thanh toán.${typedNameNote}`,
+            : `Đã tạo hóa đơn ${invoiceNo} với tổng tiền 0 (các dòng chưa có giá) nên chưa ghi nhận thanh toán.${typedNameNote}`,
       });
     } catch (err) {
       setPosNotice({ kind: "error", text: errMsg(err) });
@@ -415,28 +374,26 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
   }
 
   // POS vừa đúng 1 màn hình, không cuộn trang: section cao đúng bằng
-  // viewport trừ TopNav (3.5rem + safe-area trên) + tiêu đề trang + padding
-  // (h-[calc(100dvh-8.5rem-env(safe-area-inset-top))]), bên trong chia 2 vùng
-  // cuộn riêng (lưới dịch vụ / dòng bill), còn tiêu đề, tổng tiền và nút
-  // Xác nhận luôn nhìn thấy. Trang Bán hàng được nới rộng gần hết màn hình
-  // nhờ App.tsx bỏ max-w-3xl ở route /ban-hang.
+  // viewport trừ TopNav (3.5rem + safe-area trên) + padding trang
+  // (h-[calc(100dvh-5.5rem-env(safe-area-inset-top))]), bên trong chia 2 vùng
+  // cuộn riêng (lưới dịch vụ / dòng bill), còn tổng tiền và nút Xác nhận
+  // luôn nhìn thấy. Trang Bán hàng được nới rộng gần hết màn hình nhờ
+  // App.tsx bỏ max-w-3xl ở route /ban-hang.
+  // BUG đã sửa (2026-11-11): trên mobile, panel bill bị các hàng cố định ăn
+  // hết chiều cao nên danh sách dòng bill bị ép về 0px — bấm dịch vụ thấy
+  // badge ×N nhưng không thấy dòng trong bill. Nay danh sách dòng có chiều
+  // cao tối thiểu (min-h-16), ô ghi chú mặc định thu gọn, và có thanh kéo
+  // giữa 2 panel để kéo thêm chỗ khi cần.
   const posInputCls =
     "h-9 w-full rounded-lg border border-border bg-white px-2.5 text-sm text-ink placeholder:text-muted hover:border-tint-300 focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/20 disabled:cursor-not-allowed disabled:bg-tint-50 disabled:opacity-60";
 
   return (
-    <section className="flex h-[calc(100dvh-8.5rem-env(safe-area-inset-top))] flex-col overflow-hidden rounded-lg border border-border bg-white p-2 shadow-soft sm:p-3">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <h2 className="flex items-center gap-2 text-base font-semibold text-ink">
-          <ShoppingBag className="h-5 w-5 shrink-0 text-navy" aria-hidden="true" />
-          Bán hàng tại quầy
-        </h2>
-        {servicesQ.isLoading ? <span className="text-xs text-[#748294]">Đang tải dịch vụ...</span> : null}
-      </div>
+    <section className="flex h-[calc(100dvh-5.5rem-env(safe-area-inset-top))] flex-col overflow-hidden rounded-lg border border-border bg-white p-2 shadow-soft sm:p-3">
       {posNotice ? <div className="mb-2"><Notice kind={posNotice.kind} text={posNotice.text} onClose={() => setPosNotice(null)} /></div> : null}
-      <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,40%)_minmax(0,1fr)] gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(360px,420px)] lg:grid-rows-1">
-        {/* Trái: chọn dịch vụ — lưới tự cuộn bên trong */}
-        <div className="flex min-h-0 flex-col">
-          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Lọc theo nhóm dịch vụ">
+      <div ref={posRef} className="flex min-h-0 flex-1 flex-col lg:flex-row">
+        {/* Trên/trái: chọn dịch vụ — lưới tự cuộn bên trong */}
+        <div className="flex min-h-0 min-w-0 flex-col" style={{ flex: `0 0 ${split}%` }}>
+          <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Lọc và tìm dịch vụ">
             <button
               type="button"
               onClick={() => setCatId("")}
@@ -460,10 +417,7 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
                 </button>
               );
             })}
-          </div>
-          {catsQ.isError ? <p className="mt-2 text-sm text-[#C0392B]">Không tải được nhóm dịch vụ: {errMsg(catsQ.error)}</p> : null}
-          <div className="mt-2 flex gap-2">
-            <div className="relative min-w-0 flex-1">
+            <div className="relative min-w-[140px] flex-1">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
               <input
                 value={search}
@@ -482,6 +436,7 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
               <Plus className="h-5 w-5" aria-hidden="true" />
             </button>
           </div>
+          {catsQ.isError ? <p className="mt-2 text-sm text-[#C0392B]">Không tải được nhóm dịch vụ: {errMsg(catsQ.error)}</p> : null}
           {showAdd ? (
             <div className="mt-2 max-h-56 space-y-2 overflow-y-auto rounded-lg border border-[#E5E9ED] bg-[#F2F6F9] p-2">
               <p className="text-sm font-medium">Thêm dịch vụ mới</p>
@@ -517,14 +472,12 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
           ) : filteredServices.length === 0 ? (
             <p className="mt-2 text-sm text-[#748294]">Không tìm thấy dịch vụ nào.</p>
           ) : (
-            <div className="mt-2 grid min-h-0 flex-1 grid-cols-3 gap-1.5 overflow-y-auto pr-0.5 [scrollbar-width:thin] sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+            <div className="mt-2 grid min-h-0 flex-1 grid-cols-5 gap-1.5 overflow-y-auto pr-0.5 [scrollbar-width:thin] lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
               {filteredServices.map((sv) => {
-                const price = n(sv, "priceVnd", "price_vnd");
                 const catName = s(sv, "categoryName", "category_name");
-                const SvcIcon = iconForService(s(sv, "name"), catName);
                 // Ô đã chọn (đã có trong bill): sáng hơn, viền Navy đậm + badge
-                // số lượng ở góc phải-trên của ô; chạm lại tăng số lượng thì
-                // badge cập nhật theo, xóa khỏi bill thì hết sáng.
+                // số lượng lớn ở góc phải-trên của ô; chạm lại tăng số lượng
+                // thì badge cập nhật theo, xóa khỏi bill thì hết sáng.
                 const qty = lines.find((l) => l.refId === idOf(sv))?.quantity ?? 0;
                 const selected = qty > 0;
                 return (
@@ -533,26 +486,18 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
                     type="button"
                     onClick={() => addToBill(sv)}
                     aria-pressed={selected}
-                    className={`relative flex min-h-[48px] items-center gap-1.5 rounded-lg border px-1.5 py-1 text-left transition-colors hover:opacity-80 active:opacity-60 ${
+                    className={`relative flex min-h-[40px] items-center justify-center rounded-lg border px-1 py-1 text-center transition-colors hover:opacity-80 active:opacity-60 ${
                       selected
                         ? "border-2 border-navy bg-tint-100 text-navy shadow-md"
                         : tintFor(catName)
                     }`}
                   >
                     {selected ? (
-                      <span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-navy px-1 text-[11px] font-bold leading-none text-white shadow">
+                      <span className="absolute -right-1 -top-1.5 flex h-6 min-w-6 items-center justify-center rounded-full bg-navy px-1 text-xs font-bold leading-none text-white shadow ring-2 ring-white">
                         ×{qty}
                       </span>
                     ) : null}
-                    <SvcIcon className="h-4 w-4 shrink-0 opacity-80" aria-hidden="true" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-xs font-semibold leading-tight line-clamp-2">{s(sv, "name")}</span>
-                      {price > 0 ? (
-                        <span className="block text-[11px] tabular-nums opacity-80">{formatVnd(price)}</span>
-                      ) : (
-                        <span className="block text-[11px] text-[#748294]">Chưa có giá</span>
-                      )}
-                    </span>
+                    <span className="block text-[11px] font-semibold leading-tight line-clamp-2">{s(sv, "name")}</span>
                   </button>
                 );
               })}
@@ -560,17 +505,42 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
           )}
         </div>
 
-        {/* Phải: bill của khách — hàng bill gọn, dòng bill tự cuộn, tổng tiền + nút xác nhận luôn thấy ở cuối */}
-        <div className="flex min-h-0 flex-col rounded-lg border border-[#E5E9ED] bg-[#F7F7F5] p-2">
+        {/* Thanh kéo giữa 2 panel: kéo trái/phải trên desktop, lên/xuống trên mobile */}
+        <div
+          role="separator"
+          aria-label="Kéo để đổi kích thước 2 panel"
+          className="flex shrink-0 touch-none cursor-row-resize select-none items-center justify-center bg-tint-100 py-1.5 hover:bg-tint-200 active:bg-tint-300 lg:cursor-col-resize lg:px-1.5 lg:py-0"
+          onPointerDown={onDividerPointerDown}
+          onPointerMove={onDividerPointerMove}
+          onPointerUp={onDividerPointerUp}
+          onPointerCancel={onDividerPointerUp}
+        >
+          <GripHorizontal className="h-4 w-4 text-navy lg:hidden" aria-hidden="true" />
+          <GripVertical className="hidden h-4 w-4 text-navy lg:block" aria-hidden="true" />
+        </div>
+
+        {/* Phải/dưới: bill của khách — hàng bill gọn, dòng bill tự cuộn, tổng tiền + nút xác nhận luôn thấy ở cuối */}
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-[#E5E9ED] bg-[#F7F7F5] p-2">
           <div className="flex items-center justify-between gap-2">
             <h3 className="flex items-center gap-1.5 text-sm font-semibold text-ink">
               <Receipt className="h-4 w-4 shrink-0 text-navy" aria-hidden="true" />
               Bill của khách
             </h3>
-            <button type="button" onClick={clearBill} className="inline-flex min-h-[32px] items-center gap-1 px-2 text-xs font-semibold text-[#C0392B] hover:opacity-70">
-              <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-              Xoá hết
-            </button>
+            <span className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setShowNote((v) => !v)}
+                aria-expanded={showNote}
+                className={`inline-flex min-h-[32px] items-center gap-1 rounded-lg px-2 text-xs font-semibold ${showNote || note.trim() ? "bg-tint-100 text-navy" : "text-navy hover:bg-tint-50"}`}
+              >
+                <StickyNote className="h-3.5 w-3.5" aria-hidden="true" />
+                Ghi chú
+              </button>
+              <button type="button" onClick={clearBill} className="inline-flex min-h-[32px] items-center gap-1 px-2 text-xs font-semibold text-[#C0392B] hover:opacity-70">
+                <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                Xoá hết
+              </button>
+            </span>
           </div>
           {branches.length > 1 ? (
             <div className="mt-2">
@@ -651,21 +621,23 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
               )}
             </div>
           ) : null}
-          <div className="relative mt-2">
-            <StickyNote className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
-            <input
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Ghi chú cho bill (không bắt buộc)"
-              aria-label="Ghi chú"
-              className={`${posInputCls} pl-8`}
-            />
-          </div>
+          {showNote || note.trim() ? (
+            <div className="relative mt-2">
+              <StickyNote className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
+              <input
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Ghi chú cho bill (không bắt buộc)"
+                aria-label="Ghi chú"
+                className={`${posInputCls} pl-8`}
+              />
+            </div>
+          ) : null}
 
           {lines.length === 0 ? (
-            <p className="mt-2 flex-1 text-xs text-[#748294]">Chạm vào một dịch vụ để thêm vào bill.</p>
+            <p className="mt-2 min-h-16 flex-1 text-xs text-[#748294]">Chạm vào một dịch vụ để thêm vào bill.</p>
           ) : (
-            <ul className="mt-2 min-h-0 flex-1 space-y-1 overflow-y-auto pr-0.5 [scrollbar-width:thin]">
+            <ul className="mt-2 min-h-16 flex-1 space-y-1 overflow-y-auto pr-0.5 [scrollbar-width:thin]">
               {lines.map((l, i) => (
                 <li key={l.refId} className="flex items-center gap-1.5 border-b border-[#E5E9ED] pb-1 text-xs">
                   <span className="min-w-0 flex-1 truncate font-medium leading-tight">{l.name}</span>
@@ -748,7 +720,6 @@ function PosTerminal({ onInvoiceCreated }: { onInvoiceCreated: (inv: Row) => voi
               <dd className="text-lg font-bold leading-tight text-[#244B70]">{formatVnd(total)}</dd>
             </div>
           </dl>
-          <p className="mt-0.5 shrink-0 text-[11px] leading-tight text-[#748294]">Giá mỗi dòng chỉ là tạm tính — tổng cuối theo giá niêm yết trên máy chủ.</p>
           <button type="button" onClick={() => void confirmBill()} disabled={confirming || lines.length === 0} className={`${btnPrimary} mt-2 min-h-[48px] w-full shrink-0 text-base`}>
             <Check className="h-5 w-5" aria-hidden="true" />
             {confirming ? "Đang xử lý..." : "Xác nhận bill"}
